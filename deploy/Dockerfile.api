@@ -1,0 +1,26 @@
+# Harbor API. Build context is the repo root.
+# SQL files are published next to the app. The host applies them as the owner.
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY Directory.Build.props ./
+COPY backend/Harbor.Core/Harbor.Core.csproj backend/Harbor.Core/
+COPY backend/Harbor.Host/Harbor.Host.csproj backend/Harbor.Host/
+RUN dotnet restore backend/Harbor.Host/Harbor.Host.csproj
+COPY backend/Harbor.Core/ backend/Harbor.Core/
+COPY backend/Harbor.Host/ backend/Harbor.Host/
+COPY db/ db/
+RUN rm -f backend/Harbor.Host/appsettings.Development.json \
+    && dotnet publish backend/Harbor.Host/Harbor.Host.csproj -c Release -o /out --no-restore \
+    && test -f /out/db/001_schema.sql \
+    && test -f /out/db/003_grants.sql
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /out ./
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Harbor.Host.dll"]

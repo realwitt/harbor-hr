@@ -1,0 +1,10 @@
+.git
+.jj
+.secrets
+**/appsettings.Development.json
+**/.DS_Store
+**/bin
+**/obj
+**/node_modules
+frontend/dist
+*.log

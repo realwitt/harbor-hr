@@ -1,0 +1,120 @@
+name: Deploy
+
+# Build harbor-api + harbor-web, push to local Forgejo registry, deploy /opt/harbor.
+# SELF-ACTIVATE when /opt/harbor/.env exists.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: 127.0.0.1:3000
+  OWNER: realwitt
+
+jobs:
+  deploy:
+    runs-on: host
+    steps:
+      - name: Checkout
+        run: |
+          set -euo pipefail
+          rm -rf src
+          git clone --quiet "http://x-access-token:${{ github.token }}@127.0.0.1:3000/${{ github.repository }}.git" src
+          git -C src checkout --quiet "${{ github.sha }}"
+
+      - name: Registry login (best-effort)
+        run: |
+          if echo "${{ secrets.REGISTRY_TOKEN }}" | docker login "$REGISTRY" -u "$OWNER" --password-stdin 2>/dev/null; then
+            echo "registry=up" >> "$GITHUB_ENV"
+          else
+            echo "registry=down" >> "$GITHUB_ENV"
+            echo "WARNING: registry auth failed — deploying from locally built images"
+          fi
+
+      - name: Check provisioning
+        run: |
+          if [ -f /opt/harbor/.env ]; then
+            echo "provisioned=true" >> "$GITHUB_ENV"
+          else
+            echo "provisioned=false" >> "$GITHUB_ENV"
+            echo "NOTE: /opt/harbor/.env missing — build-only mode"
+          fi
+
+      - name: Build and push images
+        run: |
+          set -euo pipefail
+          SHA7=$(printf '%s' "${{ github.sha }}" | cut -c1-7)
+          site_key=""
+          if [ -f /opt/harbor/.env ]; then
+            site_key=$(grep -E '^VITE_TURNSTILE_SITE_KEY=' /opt/harbor/.env | head -1 | cut -d= -f2- || true)
+          fi
+          docker build -f src/deploy/Dockerfile.api \
+            -t "$REGISTRY/$OWNER/harbor-api:$SHA7" \
+            -t "$REGISTRY/$OWNER/harbor-api:latest" \
+            src
+          docker build -f src/deploy/Dockerfile.web \
+            --build-arg "VITE_TURNSTILE_SITE_KEY=${site_key}" \
+            -t "$REGISTRY/$OWNER/harbor-web:$SHA7" \
+            -t "$REGISTRY/$OWNER/harbor-web:latest" \
+            src
+          if [ "${registry:-down}" = up ]; then
+            docker push --quiet "$REGISTRY/$OWNER/harbor-api:$SHA7"
+            docker push --quiet "$REGISTRY/$OWNER/harbor-api:latest"
+            docker push --quiet "$REGISTRY/$OWNER/harbor-web:$SHA7"
+            docker push --quiet "$REGISTRY/$OWNER/harbor-web:latest"
+          fi
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          if [ "${provisioned:-false}" != "true" ]; then
+            echo "skipped: /opt/harbor/.env missing"; exit 0
+          fi
+          install -m 644 src/deploy/docker-compose.yml /opt/harbor/docker-compose.yml
+          install -m 755 src/deploy/init-db.sh /opt/harbor/init-db.sh
+          cd /opt/harbor
+          docker compose pull --quiet 2>/dev/null || true
+          docker compose up -d --remove-orphans
+
+      - name: Health gate
+        run: |
+          set -euo pipefail
+          if [ "${provisioned:-false}" != "true" ]; then
+            echo "skipped: /opt/harbor/.env missing"; exit 0
+          fi
+          cd /opt/harbor
+          ok=0
+          for i in $(seq 1 36); do
+            db=$(docker inspect -f '{{.State.Health.Status}}' harbor-db 2>/dev/null || echo missing)
+            api=$(docker inspect -f '{{.State.Health.Status}}' harbor-api 2>/dev/null || echo missing)
+            web=$(docker inspect -f '{{.State.Health.Status}}' harbor-web 2>/dev/null || echo missing)
+            echo "db=$db api=$api web=$web"
+            if [ "$db" = unhealthy ] || [ "$api" = unhealthy ] || [ "$web" = unhealthy ]; then
+              echo "FAIL: unhealthy containers"
+              docker compose logs --tail 80
+              exit 1
+            fi
+            if [ "$db" = healthy ] && [ "$api" = healthy ] && [ "$web" = healthy ]; then
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$ok" != 1 ]; then
+            echo "FAIL: containers did not become healthy"
+            docker compose ps
+            docker compose logs --tail 80
+            exit 1
+          fi
+          docker run --rm --network stack_frontend curlimages/curl:8.21.0 \
+            -fsS --max-time 15 http://harbor-web:80/api/healthz >/dev/null \
+            || { echo "FAIL: harbor-web /api/healthz unreachable"; exit 1; }
+          code=""
+          for i in $(seq 1 24); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://hr.birbol.com/api/healthz || true)
+            [ "$code" = "200" ] && break
+            sleep 5
+          done
+          [ "$code" = "200" ] || { echo "FAIL: hr.birbol.com healthz -> ${code:-err}"; exit 1; }
+          echo "health gate passed"

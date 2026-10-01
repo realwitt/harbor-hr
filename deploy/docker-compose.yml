@@ -1,0 +1,85 @@
+# Harbor. Isolated stack behind the Cloudflare Tunnel.
+# Deploy to /opt/harbor on birbol. The web container joins stack_frontend.
+#
+# Public hostname: hr.birbol.com → http://harbor-web:80
+# No host ports. cloudflared reaches harbor-web on the docker network.
+
+name: harbor
+
+services:
+  harbor-db:
+    image: postgres:18-alpine
+    container_name: harbor-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: harbor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: harbor
+      HARBOR_APP_PASSWORD: ${HARBOR_APP_PASSWORD:?set HARBOR_APP_PASSWORD in .env}
+    volumes:
+      - harbor_pgdata:/var/lib/postgresql
+      - ./init-db.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U harbor -d harbor"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  harbor-api:
+    image: 127.0.0.1:3000/realwitt/harbor-api:latest
+    container_name: harbor-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Kestrel__Endpoints__Http__Url: http://+:8080
+      HARBOR_OWNER_CONNECTION: ${HARBOR_OWNER_CONNECTION:?set HARBOR_OWNER_CONNECTION in .env}
+      HARBOR_APP_CONNECTION: ${HARBOR_APP_CONNECTION:?set HARBOR_APP_CONNECTION in .env}
+      Harbor__PublicBaseUrl: https://hr.birbol.com
+      Harbor__RelyingPartyId: hr.birbol.com
+      Harbor__CookieSecure: "true"
+      Harbor__Origins__0: https://hr.birbol.com
+      Harbor__Origins__1: https://hr.birbol.com
+      Harbor__TurnstileSecret: ${Harbor__TurnstileSecret:-}
+      Harbor__MailWorkerUrl: ${Harbor__MailWorkerUrl:-}
+    depends_on:
+      harbor-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks:
+      - internal
+
+  harbor-web:
+    image: 127.0.0.1:3000/realwitt/harbor-web:latest
+    container_name: harbor-web
+    restart: unless-stopped
+    depends_on:
+      harbor-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+    networks:
+      - internal
+      - edge
+
+volumes:
+  harbor_pgdata:
+    name: harbor_pgdata
+
+networks:
+  internal:
+    name: harbor_internal
+  edge:
+    name: stack_frontend
+    external: true
