@@ -1,16 +1,22 @@
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, getRouteApi, useNavigate } from '@tanstack/react-router'
 import { api } from '../api'
 import { meQuery, queryClient } from '../query'
 import type { Me } from '../types'
 import { Button, ErrorText, Page, TextField, fieldErrors } from '../ui'
 import { getPasskey } from '../webauthn'
 
+const recoveryRoute = getRouteApi('/sign-in/recovery')
+
 async function loadMe(): Promise<Me> {
   const me = await api<Me>('/api/auth/me')
   queryClient.setQueryData(meQuery.queryKey, me)
   return me
+}
+
+function emailError(value: string): string | undefined {
+  return value.includes('@') ? undefined : 'Enter an email address.'
 }
 
 export function SignInPage() {
@@ -32,6 +38,63 @@ export function SignInPage() {
       void navigate({ to: me.ready ? '/' : '/security' })
     },
   })
+  const form = useForm({
+    defaultValues: { email: '' },
+    onSubmit: ({ value }) => {
+      passkey.mutate(value.email.trim().toLowerCase())
+    },
+  })
+
+  return (
+    <main className="guest">
+      <div className="guest-card panel">
+        <Page title="Sign in">
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void form.handleSubmit()
+            }}
+          >
+            <form.Field
+              name="email"
+              validators={{
+                onSubmit: ({ value }) => emailError(value),
+              }}
+            >
+              {(field) => (
+                <TextField
+                  label="Email"
+                  type="email"
+                  autoComplete="username webauthn"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  error={fieldErrors(field.state.meta.errors)}
+                />
+              )}
+            </form.Field>
+            <Button type="submit" isDisabled={passkey.isPending}>
+              Use passkey
+            </Button>
+            <ErrorText error={passkey.error} />
+            <form.Subscribe selector={(state) => state.values.email}>
+              {(email) => (
+                <Link className="trouble-link" to="/sign-in/recovery" search={{ email: email.trim() }}>
+                  Having trouble signing in?
+                </Link>
+              )}
+            </form.Subscribe>
+          </form>
+        </Page>
+      </div>
+    </main>
+  )
+}
+
+export function RecoverySignInPage() {
+  const navigate = useNavigate()
+  const search = recoveryRoute.useSearch()
   const recovery = useMutation({
     mutationFn: async (input: { email: string; code: string }) => {
       await api('/api/auth/recovery/assert', {
@@ -45,69 +108,72 @@ export function SignInPage() {
     },
   })
   const form = useForm({
-    defaultValues: { email: '', code: '' },
+    defaultValues: { email: search.email, code: '' },
     onSubmit: ({ value }) => {
-      passkey.mutate(value.email.trim().toLowerCase())
+      recovery.mutate({
+        email: value.email.trim().toLowerCase(),
+        code: value.code.trim(),
+      })
     },
   })
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-3 px-3 py-6">
-      <Page title="Sign in">
-        <form
-          className="flex flex-col gap-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void form.handleSubmit()
-          }}
-        >
-          <form.Field
-            name="email"
-            validators={{
-              onSubmit: ({ value }) => (value.includes('@') ? undefined : 'Enter an email address.'),
+    <main className="guest">
+      <div className="guest-card panel">
+        <Page title="Having trouble signing in?">
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void form.handleSubmit()
             }}
           >
-            {(field) => (
-              <TextField
-                label="Email"
-                type="email"
-                autoComplete="username webauthn"
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-                error={fieldErrors(field.state.meta.errors)}
-              />
-            )}
-          </form.Field>
-          <Button type="submit" isDisabled={passkey.isPending}>
-            Use passkey
-          </Button>
-          <ErrorText error={passkey.error} />
-          <form.Field name="code">
-            {(field) => (
-              <TextField
-                label="Recovery code"
-                autoComplete="one-time-code"
-                value={field.state.value}
-                onChange={field.handleChange}
-                onBlur={field.handleBlur}
-              />
-            )}
-          </form.Field>
-          <Button
-            quiet
-            isDisabled={recovery.isPending}
-            onPress={() => {
-              const email = form.getFieldValue('email').trim().toLowerCase()
-              const code = form.getFieldValue('code').trim()
-              recovery.mutate({ email, code })
-            }}
-          >
-            Use recovery code
-          </Button>
-          <ErrorText error={recovery.error} />
-        </form>
-      </Page>
+            <p className="subtle">Enter your email and a recovery code.</p>
+            <form.Field
+              name="email"
+              validators={{
+                onSubmit: ({ value }) => emailError(value),
+              }}
+            >
+              {(field) => (
+                <TextField
+                  label="Email"
+                  type="email"
+                  autoComplete="username"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  error={fieldErrors(field.state.meta.errors)}
+                />
+              )}
+            </form.Field>
+            <form.Field
+              name="code"
+              validators={{
+                onSubmit: ({ value }) => (value.trim() ? undefined : 'Enter a recovery code.'),
+              }}
+            >
+              {(field) => (
+                <TextField
+                  label="Recovery code"
+                  autoComplete="one-time-code"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  error={fieldErrors(field.state.meta.errors)}
+                />
+              )}
+            </form.Field>
+            <Button type="submit" isDisabled={recovery.isPending}>
+              Use recovery code
+            </Button>
+            <ErrorText error={recovery.error} />
+            <Link className="trouble-link" to="/sign-in">
+              Back to sign in
+            </Link>
+          </form>
+        </Page>
+      </div>
     </main>
   )
 }

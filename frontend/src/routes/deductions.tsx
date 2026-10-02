@@ -143,7 +143,7 @@ function DeductionEditor() {
         {submit.data ? <p className="text-sm">Saved. Status: {statusLabel(submit.data.status)}.</p> : null}
         <ErrorText error={submit.error} />
       </form>
-      <aside className="flex flex-col gap-1 border border-neutral-200 bg-white p-2">
+      <aside className="panel">
         <h2 className="text-sm font-semibold">Paycheck preview</h2>
         <p className="text-sm">This is an estimate. It is not a pay stub.</p>
         {preview.isFetching ? <p className="text-sm">Loading the estimate.</p> : null}

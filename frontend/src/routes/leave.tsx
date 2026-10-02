@@ -20,27 +20,25 @@ export function LeavePage() {
   const names = new Map((types.data ?? []).map((type) => [type.id, type.code]))
 
   return (
-    <Page title="My requests">
+    <Page title="My requests" action={<Button to="/leave/new">Create request</Button>}>
       <ErrorText error={requests.error ?? types.error} />
-      <Table aria-label="My requests" className="w-full text-sm">
-        <TableHeader className="text-left text-xs text-neutral-500">
-          <Column isRowHeader className="py-1 font-medium">
-            Type
-          </Column>
-          <Column className="py-1 font-medium">Status</Column>
-          <Column className="py-1 font-medium">Days</Column>
-          <Column className="py-1 font-medium">Action</Column>
+      <Table aria-label="My requests">
+        <TableHeader>
+          <Column isRowHeader>Type</Column>
+          <Column>Status</Column>
+          <Column>Days</Column>
+          <Column>Action</Column>
         </TableHeader>
         <TableBody
           items={requests.data ?? []}
           renderEmptyState={() => <p className="py-2 text-sm">No leave request.</p>}
         >
           {(request) => (
-            <Row id={request.id} className="border-t border-neutral-200">
-              <Cell className="py-1 pr-2">{names.get(request.leaveTypeId) ?? request.leaveTypeId}</Cell>
-              <Cell className="py-1 pr-2">{statusLabel(request.status)}</Cell>
-              <Cell className="py-1 pr-2">{dayList(request.days)}</Cell>
-              <Cell className="py-1">
+            <Row id={request.id}>
+              <Cell>{names.get(request.leaveTypeId) ?? request.leaveTypeId}</Cell>
+              <Cell>{statusLabel(request.status)}</Cell>
+              <Cell>{dayList(request.days)}</Cell>
+              <Cell>
                 {request.status === 'pending' ? <CancelRequest requestId={request.id} /> : null}
               </Cell>
             </Row>
@@ -96,7 +94,7 @@ function CancelRequest({ requestId }: { requestId: string }) {
               <p className="text-sm">This leave type has no balance.</p>
             )}
             {preview.data.warnings.map((warning) => (
-              <p key={warning.code} className="text-sm text-red-700">
+              <p key={warning.code} className="invalid">
                 {warning.message}
               </p>
             ))}

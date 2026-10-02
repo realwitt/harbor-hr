@@ -90,7 +90,8 @@ export function InvitePage() {
   })
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-3 px-3 py-6">
+    <main className="guest">
+      <div className="guest-card panel">
       <Page title="Invite">
         {invite.isPending ? <p className="text-sm">Loading the invite.</p> : null}
         <ErrorText error={invite.error} />
@@ -110,6 +111,7 @@ export function InvitePage() {
           </>
         ) : null}
       </Page>
+      </div>
     </main>
   )
 }

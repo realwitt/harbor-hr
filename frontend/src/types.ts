@@ -162,6 +162,21 @@ export type InviteInfo = {
   name: string
 }
 
+export type AdminEmployee = {
+  id: string
+  name: string
+  email: string
+  role: 'employee' | 'hr_admin'
+  hiredOn: string
+  jurisdiction: string
+  timezone: string
+  hdhpEligible: boolean
+  hsaCoverage: 'self' | 'family' | null
+  terminatedOn: string | null
+  managerId: string | null
+  managerName: string | null
+}
+
 export type Blackout = {
   on: string
   reason: string

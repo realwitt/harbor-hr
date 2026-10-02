@@ -1,70 +1,79 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
 import { api } from '../api'
-import { hoursText, kindLabel, localIsoDate, money } from '../format'
-import type { DeductionsResponse, LeaveBalance, LeaveRequest, LeaveType } from '../types'
-import { DateField, ErrorText, Page } from '../ui'
+import { dayCount, hoursText, leaveTypeLabel, localIsoDate } from '../format'
+import type { LeaveBalance, LeaveType } from '../types'
+import { ErrorText, Page } from '../ui'
+
+const paychecksPerYear = 26
+
+function yearHours(type: LeaveType): number | null {
+  if (type.hoursPerGrant == null) {
+    return null
+  }
+
+  if (type.model === 'accrued') {
+    return type.hoursPerGrant * paychecksPerYear
+  }
+
+  if (type.model === 'instant') {
+    return type.hoursPerGrant
+  }
+
+  return null
+}
 
 export function HomePage() {
-  const [on, setOn] = useState(localIsoDate)
+  const today = localIsoDate()
   const balances = useQuery({
-    queryKey: ['leave-balances', on],
-    queryFn: () => api<LeaveBalance[]>(`/api/leave/balances?on=${encodeURIComponent(on)}`),
-  })
-  const requests = useQuery({
-    queryKey: ['leave-requests'],
-    queryFn: () => api<LeaveRequest[]>('/api/leave/requests'),
+    queryKey: ['leave-balances', today],
+    queryFn: () => api<LeaveBalance[]>(`/api/leave/balances?on=${encodeURIComponent(today)}`),
   })
   const types = useQuery({
     queryKey: ['leave-types'],
     queryFn: () => api<LeaveType[]>('/api/leave/types'),
   })
-  const deductions = useQuery({
-    queryKey: ['deductions'],
-    queryFn: () => api<DeductionsResponse>('/api/deductions'),
-  })
-  const typeName = new Map((types.data ?? []).map((type) => [type.id, type.code]))
-  const nextDay = (requests.data ?? [])
-    .filter((request) => request.status === 'approved')
-    .flatMap((request) => request.days.map((day) => ({ ...day, leaveTypeId: request.leaveTypeId })))
-    .filter((day) => day.on >= on)
-    .sort((left, right) => left.on.localeCompare(right.on))[0]
-  const current = (deductions.data?.elections ?? []).filter(
-    (election) => election.status === 'active' && election.endedOn == null,
-  )
+  const ready = balances.data != null && types.data != null
+  const typeById = new Map((types.data ?? []).map((type) => [type.id, type]))
+  const cards = (ready ? balances.data ?? [] : [])
+    .filter((row) => row.hasBalance)
+    .map((row) => ({ row, type: typeById.get(row.leaveTypeId) }))
+    .sort((left, right) => {
+      const leftRank = left.row.code === 'pto' ? 0 : 1
+      const rightRank = right.row.code === 'pto' ? 0 : 1
+      return leftRank - rightRank || left.row.code.localeCompare(right.row.code)
+    })
 
   return (
     <Page title="Home">
-      <DateField label="On" value={on} onChange={setOn} />
-      <ErrorText error={balances.error ?? requests.error ?? deductions.error} />
-      <section className="flex flex-col gap-1">
-        <h2 className="text-sm font-semibold">Balances</h2>
-        {balances.data && balances.data.length === 0 ? <p className="text-sm">No leave type is set up.</p> : null}
-        {balances.data?.map((row) => (
-          <p key={row.leaveTypeId} className="text-sm">
-            {row.code}: {row.hasBalance ? `${hoursText(row.availableHours)} available, ${hoursText(row.bookedHours)} booked` : 'No balance'}
-          </p>
-        ))}
-      </section>
-      <section className="flex flex-col gap-1">
-        <h2 className="text-sm font-semibold">Next approved day off</h2>
-        {nextDay ? (
-          <p className="text-sm">
-            {nextDay.on} · {typeName.get(nextDay.leaveTypeId) ?? 'Leave'} · {nextDay.hours} h
-          </p>
-        ) : (
-          <p className="text-sm">No approved day off.</p>
-        )}
-      </section>
-      <section className="flex flex-col gap-1">
-        <h2 className="text-sm font-semibold">Current deductions</h2>
-        {current.length === 0 ? <p className="text-sm">No current deduction.</p> : null}
-        {current.map((election) => (
-          <p key={election.id} className="text-sm">
-            {kindLabel(election.kind)} · {money(election.perPaycheckCents)} per paycheck
-          </p>
-        ))}
-      </section>
+      <ErrorText error={balances.error ?? types.error} />
+      {balances.isPending || types.isPending ? <p>Loading balances.</p> : null}
+      {ready && cards.length === 0 ? <p>No leave balance.</p> : null}
+      {cards.length > 0 ? (
+        <div className="home-stats">
+          {cards.map(({ row, type }) => {
+            const yearly = type ? yearHours(type) : null
+            return (
+              <article key={row.leaveTypeId} className="panel">
+                <h2 className="stat-code">{leaveTypeLabel(row.code)}</h2>
+                <div className="stat-grid">
+                  <div>
+                    <p className="stat-value">{hoursText(row.availableHours)}</p>
+                    <p className="stat-meta">Balance</p>
+                  </div>
+                  <div>
+                    <p className="stat-value">{type ? hoursText(type.hoursPerGrant) : '—'}</p>
+                    <p className="stat-meta">{type?.model === 'accrued' ? 'Per paycheck' : 'Each year'}</p>
+                  </div>
+                  <div>
+                    <p className="stat-value">{yearly == null ? '—' : dayCount(yearly)}</p>
+                    <p className="stat-meta">Days per year</p>
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      ) : null}
     </Page>
   )
 }

@@ -1,12 +1,11 @@
-import { useForm } from '@tanstack/react-form'
+import { useForm, useSelector } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
 import { api, idempotencyHeaders } from '../api'
-import { hoursText, parseHours } from '../format'
-import type { LeaveBalance, LeavePreview, LeaveType } from '../types'
+import { hoursText, leaveTypeLabel, parseHours } from '../format'
+import type { LeavePreview, LeaveType } from '../types'
 import { useDebounced } from '../use-debounced'
-import { Button, Choice, DateField, ErrorText, Page, TextField, fieldErrors } from '../ui'
+import { Button, Choice, DateField, ErrorText, Page, TextField } from '../ui'
 import { stepUp } from '../webauthn'
 
 type LeaveDraft = {
@@ -17,33 +16,62 @@ type LeaveDraft = {
   adminOverride: false
 }
 
+const hoursError = 'Hours per day must be greater than 0 and at most 24.'
+
+function draftFrom(leaveTypeId: string, start: string, end: string, hoursPerDay: string): LeaveDraft | null {
+  const hours = parseHours(hoursPerDay, false)
+  if (!leaveTypeId || !start || !end || hours === null || hours <= 0 || hours > 24 || end < start) {
+    return null
+  }
+
+  return { leaveTypeId, start, end, hoursPerDay: hours, adminOverride: false }
+}
+
+function inclusiveDays(start: string, end: string): number {
+  const startMs = Date.parse(`${start}T00:00:00Z`)
+  const endMs = Date.parse(`${end}T00:00:00Z`)
+  return Math.round((endMs - startMs) / 86_400_000) + 1
+}
+
 export function LeaveNewPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [step, setStep] = useState<'request' | 'confirm'>('request')
-  const [focusDate, setFocusDate] = useState('')
-  const projectionDate = useDebounced(focusDate, 200)
   const types = useQuery({
     queryKey: ['leave-types'],
     queryFn: () => api<LeaveType[]>('/api/leave/types'),
   })
-  const projection = useQuery({
-    queryKey: ['leave-balances', projectionDate],
-    enabled: projectionDate.length > 0,
-    queryFn: () => api<LeaveBalance[]>(`/api/leave/balances?on=${encodeURIComponent(projectionDate)}`),
+  const form = useForm({
+    defaultValues: {
+      leaveTypeId: '',
+      start: '',
+      end: '',
+      hoursPerDay: '8',
+    },
   })
-  const preview = useMutation({
-    mutationFn: (body: LeaveDraft) =>
+  const values = useSelector(form.store, (state) => state.values)
+  const draftKey = `${values.leaveTypeId}|${values.start}|${values.end}|${values.hoursPerDay}`
+  const debouncedKey = useDebounced(draftKey, 300)
+  const settled = draftKey === debouncedKey
+  const [debouncedType = '', debouncedStart = '', debouncedEnd = '', debouncedHours = ''] = debouncedKey.split('|')
+  const draft = draftFrom(debouncedType, debouncedStart, debouncedEnd, debouncedHours)
+  const live = draftFrom(values.leaveTypeId, values.start, values.end, values.hoursPerDay)
+  const preview = useQuery({
+    queryKey: ['leave-preview', debouncedType, debouncedStart, debouncedEnd, debouncedHours],
+    enabled: draft !== null,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: () =>
       api<LeavePreview>('/api/leave/preview', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify(draft),
       }),
   })
+  const quote = settled && draft ? preview.data : undefined
+  const canRequest = Boolean(quote && quote.warnings.length === 0 && !preview.isFetching)
   const submit = useMutation({
-    mutationFn: async (quote: LeavePreview) => {
-      const body = preview.variables
-      if (!body) {
-        throw new Error('Preview the request first.')
+    mutationFn: async () => {
+      if (!quote || !draft || quote.warnings.length > 0) {
+        throw new Error('The request is not valid.')
       }
 
       await stepUp('confirm_quote', quote.quoteId)
@@ -52,10 +80,10 @@ export function LeaveNewPage() {
         headers: idempotencyHeaders(),
         body: JSON.stringify({
           quoteId: quote.quoteId,
-          leaveTypeId: body.leaveTypeId,
-          start: body.start,
-          end: body.end,
-          hoursPerDay: body.hoursPerDay,
+          leaveTypeId: draft.leaveTypeId,
+          start: draft.start,
+          end: draft.end,
+          hoursPerDay: draft.hoursPerDay,
           adminOverride: false,
         }),
       })
@@ -66,230 +94,90 @@ export function LeaveNewPage() {
       await navigate({ to: '/leave' })
     },
   })
-  const form = useForm({
-    defaultValues: {
-      request: {
-        leaveTypeId: '',
-        start: '',
-        end: '',
-        hoursPerDay: '8',
-      },
-      confirm: {
-        ready: true,
-      },
-    },
-  })
+  const parsedHours = parseHours(values.hoursPerDay, false)
+  const hoursFieldError =
+    values.hoursPerDay.trim() !== '' && (parsedHours === null || parsedHours <= 0 || parsedHours > 24) ? hoursError : undefined
+  const endFieldError = values.start && values.end && values.end < values.start ? 'The end date is before the start date.' : undefined
 
   return (
     <Page title="Request leave">
       <ErrorText error={types.error} />
-      {step === 'request' ? (
-        <form.FormGroup
-          name="request"
-          validators={{
-            onSubmit: ({ value }) => {
-              if (value.start && value.end && value.end < value.start) {
-                return { fields: { end: 'The end date is before the start date.' } }
-              }
-
-              return undefined
-            },
-          }}
-          onGroupSubmit={async ({ value }) => {
-            const hours = parseHours(value.hoursPerDay, false)
-            if (hours === null) {
-              return
-            }
-
-            await preview.mutateAsync({
-              leaveTypeId: value.leaveTypeId,
-              start: value.start,
-              end: value.end,
-              hoursPerDay: hours,
-              adminOverride: false,
-            })
-            setStep('confirm')
-          }}
-        >
-          {(group) => (
-            <form
-              className="flex max-w-md flex-col gap-2"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void group.handleSubmit()
-              }}
-            >
-              <form.Field
-                name="request.leaveTypeId"
-                validators={{
-                  onSubmit: ({ value }) => (value ? undefined : 'Pick a leave type.'),
-                }}
-              >
-                {(field) => (
-                  <Choice
-                    label="Type"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    error={fieldErrors(field.state.meta.errors)}
-                    options={(types.data ?? []).map((type) => ({ id: type.id, label: type.code }))}
-                  />
-                )}
-              </form.Field>
-              <form.Field
-                name="request.start"
-                validators={{
-                  onSubmit: ({ value }) => (value ? undefined : 'Pick a date.'),
-                }}
-              >
-                {(field) => (
-                  <DateField
-                    label="Start"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    onFocusDate={setFocusDate}
-                    error={fieldErrors(field.state.meta.errors)}
-                  />
-                )}
-              </form.Field>
-              <form.Field
-                name="request.end"
-                validators={{
-                  onSubmit: ({ value }) => (value ? undefined : 'Pick a date.'),
-                }}
-              >
-                {(field) => (
-                  <DateField
-                    label="End"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    onFocusDate={setFocusDate}
-                    error={fieldErrors(field.state.meta.errors)}
-                  />
-                )}
-              </form.Field>
-              <form.Field
-                name="request.hoursPerDay"
-                validators={{
-                  onSubmit: ({ value }) => {
-                    const hours = parseHours(value, false)
-                    if (hours === null || hours <= 0 || hours > 24) {
-                      return 'Hours per day must be greater than 0 and at most 24.'
-                    }
-
-                    return undefined
-                  },
-                }}
-              >
-                {(field) => (
-                  <TextField
-                    label="Hours per day"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    onBlur={field.handleBlur}
-                    error={fieldErrors(field.state.meta.errors)}
-                  />
-                )}
-              </form.Field>
-              <ErrorText error={group.state.meta.errors} />
-              <Button type="submit" isDisabled={preview.isPending}>
-                Preview
-              </Button>
-              <ErrorText error={preview.error} />
-            </form>
+      <form
+        className="flex max-w-md flex-col gap-2"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (canRequest) {
+            submit.mutate()
+          }
+        }}
+      >
+        <form.Field name="leaveTypeId">
+          {(field) => (
+            <Choice
+              label="Type"
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={(types.data ?? []).map((type) => ({ id: type.id, label: leaveTypeLabel(type.code) }))}
+            />
           )}
-        </form.FormGroup>
-      ) : null}
-      {step === 'confirm' && preview.data ? (
-        <form.FormGroup
-          name="confirm"
-          onGroupSubmit={async () => {
-            if (!preview.data) {
-              return
-            }
-
-            await submit.mutateAsync(preview.data)
-          }}
-        >
-          {(group) => (
-            <form
-              className="flex max-w-md flex-col gap-2"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void group.handleSubmit()
-              }}
-            >
-              <QuoteView preview={preview.data!} />
-              <div className="flex gap-2">
-                <Button
-                  quiet
-                  onPress={() => {
-                    preview.reset()
-                    submit.reset()
-                    setStep('request')
-                  }}
-                >
-                  Back
-                </Button>
-                <Button type="submit" isDisabled={submit.isPending}>
-                  Confirm
-                </Button>
-              </div>
-              <ErrorText error={submit.error} />
-            </form>
+        </form.Field>
+        <form.Field name="start">
+          {(field) => <DateField label="Start" value={field.state.value} onChange={field.handleChange} />}
+        </form.Field>
+        <form.Field name="end">
+          {(field) => (
+            <DateField label="End" value={field.state.value} onChange={field.handleChange} error={endFieldError} />
           )}
-        </form.FormGroup>
-      ) : null}
-      <ProjectionPanel date={projectionDate} rows={projection.data} error={projection.error} pending={projection.isFetching} />
+        </form.Field>
+        <form.Field name="hoursPerDay">
+          {(field) => (
+            <TextField
+              label="Hours per day"
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              error={hoursFieldError}
+            />
+          )}
+        </form.Field>
+        <RequestSummary live={live} quote={quote} checking={draft !== null && (preview.isFetching || !settled)} />
+        <Button type="submit" isDisabled={!canRequest || submit.isPending}>
+          Request
+        </Button>
+        <ErrorText error={preview.error ?? submit.error} />
+      </form>
     </Page>
   )
 }
 
-function QuoteView({ preview }: { preview: LeavePreview }) {
-  const projection = preview.projection
-  return (
-    <div className="flex flex-col gap-1 text-sm">
-      <p>Quote {preview.quoteId}</p>
-      <p>Expires {preview.expiresAt}</p>
-      {projection?.hasBalance ? (
-        <p>
-          Available {hoursText(projection.availableHours)}. Booked {hoursText(projection.bookedHours)}.
-        </p>
-      ) : (
-        <p>This leave type has no balance.</p>
-      )}
-      {preview.warnings.length === 0 ? <p>No warning.</p> : null}
-      {preview.warnings.map((warning) => (
-        <p key={warning.code} className="text-red-700">
-          {warning.message}
-        </p>
-      ))}
-    </div>
-  )
-}
-
-function ProjectionPanel({
-  date,
-  rows,
-  error,
-  pending,
+function RequestSummary({
+  live,
+  quote,
+  checking,
 }: {
-  date: string
-  rows: LeaveBalance[] | undefined
-  error: unknown
-  pending: boolean
+  live: LeaveDraft | null
+  quote: LeavePreview | undefined
+  checking: boolean
 }) {
-  if (!date) {
-    return <p className="text-sm">Hover or choose a date to see the balance.</p>
+  if (!live) {
+    return <p className="text-sm">Choose a type, dates, and hours.</p>
   }
 
+  const days = inclusiveDays(live.start, live.end)
+  const projection = quote?.projection
   return (
-    <section className="flex flex-col gap-1 border border-neutral-200 bg-white p-2">
-      <h2 className="text-sm font-semibold">Balance on {date}</h2>
-      {pending ? <p className="text-sm">Loading the balance.</p> : null}
-      <ErrorText error={error} />
-      {rows?.map((row) => (
-        <p key={row.leaveTypeId} className="text-sm">
-          {row.code}: {row.hasBalance ? `${hoursText(row.availableHours)} available, ${hoursText(row.bookedHours)} booked` : 'No balance'}
+    <section className="panel">
+      <h2 className="text-sm font-semibold">This request</h2>
+      <p className="text-sm">
+        {days} {days === 1 ? 'day' : 'days'} · {hoursText(live.hoursPerDay * days)}
+      </p>
+      {checking ? <p className="text-sm">Checking the request.</p> : null}
+      {projection?.hasBalance ? <p className="text-sm">Available {hoursText(projection.availableHours)}.</p> : null}
+      {projection && !projection.hasBalance ? <p className="text-sm">This leave type has no balance.</p> : null}
+      {quote && quote.warnings.length === 0 && !checking ? <p className="text-sm">You can request this leave.</p> : null}
+      {quote?.warnings.map((warning, index) => (
+        <p key={`${warning.code}-${index}`} className="invalid text-sm">
+          {warning.message}
         </p>
       ))}
     </section>

@@ -1,7 +1,9 @@
 import { parseDate } from '@internationalized/date'
-import type { ReactNode } from 'react'
+import { Link as RouterLink } from '@tanstack/react-router'
+import type { AnchorHTMLAttributes, ComponentProps, MouseEvent, ReactNode } from 'react'
 import {
   Button as AriaButton,
+  Link as AriaLink,
   Calendar,
   CalendarCell,
   CalendarGrid,
@@ -9,7 +11,8 @@ import {
   CalendarGridHeader,
   CalendarHeaderCell,
   CalendarHeading,
-  Checkbox as AriaCheckbox,
+  CheckboxButton,
+  CheckboxField,
   DateInput,
   DatePicker,
   DateSegment,
@@ -29,9 +32,6 @@ import {
   TextField as AriaTextField,
 } from 'react-aria-components'
 import { ApiError } from './api'
-
-const fieldClass = 'h-7 rounded-sm border border-neutral-300 bg-white px-2 text-sm outline-none'
-const labelClass = 'text-xs text-neutral-600'
 
 export function errorText(error: unknown): string {
   if (!error) {
@@ -70,13 +70,20 @@ export function ErrorText({ error }: { error: unknown }) {
     return null
   }
 
-  return <p className="text-sm text-red-700">{text}</p>
+  return (
+    <p className="field-error" role="alert">
+      {text}
+    </p>
+  )
 }
 
-export function Page({ title, children }: { title: string; children: ReactNode }) {
+export function Page({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3">
-      <h1 className="text-base font-semibold">{title}</h1>
+    <section className="page">
+      <div className="page-head">
+        <h1 className="page-title">{title}</h1>
+        {action}
+      </div>
       {children}
     </section>
   )
@@ -88,23 +95,57 @@ export function Button({
   type = 'button',
   isDisabled,
   quiet,
+  slot,
+  label,
+  to,
 }: {
   children: ReactNode
   onPress?: () => void
   type?: 'button' | 'submit' | 'reset'
   isDisabled?: boolean
   quiet?: boolean
+  slot?: 'previous' | 'next'
+  label?: string
+  to?: ComponentProps<typeof RouterLink>['to']
 }) {
+  const className = 'react-aria-Button button-base'
+  const variant = quiet ? 'quiet' : 'primary'
+  if (to) {
+    return (
+      <AriaLink
+        className={className}
+        data-variant={variant}
+        aria-label={label}
+        render={(domProps) => {
+          const props = domProps as AnchorHTMLAttributes<HTMLAnchorElement>
+          const { href: _href, children: _children, onClick, ...rest } = props
+          return (
+            <RouterLink
+              to={to}
+              {...(rest as Omit<ComponentProps<typeof RouterLink>, 'to'>)}
+              onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+                onClick?.(event)
+              }}
+            >
+              {children}
+            </RouterLink>
+          )
+        }}
+      >
+        {children}
+      </AriaLink>
+    )
+  }
+
   return (
     <AriaButton
       type={type}
       onPress={onPress}
       isDisabled={isDisabled}
-      className={`inline-flex h-7 items-center rounded-sm px-2 text-sm outline-none data-[disabled]:opacity-50 data-[focus-visible]:outline data-[focus-visible]:outline-2 data-[focus-visible]:outline-neutral-800 ${
-        quiet
-          ? 'border border-transparent text-neutral-700 data-[hovered]:bg-neutral-100'
-          : 'border border-neutral-300 bg-white data-[hovered]:bg-neutral-100 data-[pressed]:bg-neutral-200'
-      }`}
+      slot={slot}
+      aria-label={label}
+      className={className}
+      data-variant={variant}
     >
       {children}
     </AriaButton>
@@ -139,12 +180,71 @@ export function TextField({
       autoComplete={autoComplete}
       isReadOnly={isReadOnly}
       isInvalid={Boolean(error)}
-      className="flex min-w-0 flex-col gap-0.5"
     >
-      <Label className={labelClass}>{label}</Label>
-      <Input className={`${fieldClass} data-[focus-visible]:border-neutral-800`} />
-      {error ? <FieldError className="text-xs text-red-700">{error}</FieldError> : null}
+      <Label>{label}</Label>
+      <Input className="react-aria-Input inset" />
+      {error ? <FieldError>{error}</FieldError> : null}
     </AriaTextField>
+  )
+}
+
+function ChevronDown() {
+  return (
+    <svg className="lucide-chevron-down" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="m6 9 6 6 6-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function ChevronLeft() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="m15 18-6-6 6-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function ChevronRight() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="m9 18 6-6-6-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function CheckMark() {
+  return (
+    <svg className="lucide-check" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M20 6 9 17l-5-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
@@ -166,22 +266,23 @@ export function Choice({
       selectedKey={value || null}
       onSelectionChange={(key) => onChange(key == null ? '' : String(key))}
       isInvalid={Boolean(error)}
-      className="flex min-w-36 flex-col gap-0.5"
     >
-      <Label className={labelClass}>{label}</Label>
-      <AriaButton className={`${fieldClass} flex items-center justify-between gap-2 text-left data-[focus-visible]:border-neutral-800`}>
-        <SelectValue className="truncate" />
-      </AriaButton>
-      {error ? <FieldError className="text-xs text-red-700">{error}</FieldError> : null}
-      <Popover className="min-w-(--trigger-width) border border-neutral-300 bg-white shadow-sm">
-        <ListBox className="max-h-60 overflow-auto p-1 outline-none">
+      <Label>{label}</Label>
+      <Button>
+        <SelectValue />
+        <ChevronDown />
+      </Button>
+      {error ? <FieldError>{error}</FieldError> : null}
+      <Popover className="react-aria-Popover select-popover">
+        <ListBox className="dropdown-listbox">
           {options.map((option) => (
-            <ListBoxItem
-              key={option.id}
-              id={option.id}
-              className="cursor-pointer rounded-sm px-2 py-1 text-sm outline-none data-[focused]:bg-neutral-100 data-[selected]:font-medium"
-            >
-              {option.label}
+            <ListBoxItem key={option.id} id={option.id} className="dropdown-item" textValue={option.label}>
+              {({ isSelected }) => (
+                <>
+                  {isSelected ? <CheckMark /> : null}
+                  <span slot="label">{option.label}</span>
+                </>
+              )}
             </ListBoxItem>
           ))}
         </ListBox>
@@ -215,48 +316,47 @@ export function DateField({
         }
       }}
       isInvalid={Boolean(error)}
-      className="flex flex-col gap-0.5"
     >
-      <Label className={labelClass}>{label}</Label>
-      <Group className={`${fieldClass} flex items-center pr-0`}>
-        <DateInput className="flex flex-1 px-0">
-          {(segment) => (
-            <DateSegment
-              segment={segment}
-              className="rounded-sm px-0.5 tabular-nums outline-none data-[focused]:bg-neutral-200"
-            />
-          )}
+      <Label>{label}</Label>
+      <Group>
+        <DateInput className="react-aria-DateInput inset">
+          {(segment) => <DateSegment segment={segment} />}
         </DateInput>
-        <AriaButton className="h-7 px-2 text-xs outline-none data-[focus-visible]:outline data-[focus-visible]:outline-2 data-[focus-visible]:outline-neutral-800">
-          Open
+        <AriaButton className="field-Button" aria-label="Open calendar">
+          <ChevronDown />
         </AriaButton>
       </Group>
-      {error ? <FieldError className="text-xs text-red-700">{error}</FieldError> : null}
-      <Popover className="border border-neutral-300 bg-white p-2 shadow-sm">
-        <Calendar className="w-fit">
-          <header className="flex items-center gap-1">
-            <AriaButton slot="previous" className="h-6 w-6 text-sm">
-              ‹
-            </AriaButton>
-            <CalendarHeading className="flex-1 text-center text-sm" />
-            <AriaButton slot="next" className="h-6 w-6 text-sm">
-              ›
-            </AriaButton>
-          </header>
-          <CalendarGrid className="border-spacing-0">
-            <CalendarGridHeader>
-              {(day) => <CalendarHeaderCell className="text-xs text-neutral-500">{day}</CalendarHeaderCell>}
-            </CalendarGridHeader>
-            <CalendarGridBody>
-              {(date) => (
-                <CalendarCell
-                  date={date}
-                  onHoverStart={() => onFocusDate?.(date.toString())}
-                  className="flex h-7 w-7 items-center justify-center rounded-sm text-xs outline-none data-[hovered]:bg-neutral-200 data-[selected]:bg-neutral-800 data-[selected]:text-white data-[focus-visible]:outline data-[focus-visible]:outline-2 data-[focus-visible]:outline-neutral-800"
-                />
-              )}
-            </CalendarGridBody>
-          </CalendarGrid>
+      {error ? <FieldError>{error}</FieldError> : null}
+      <Popover className="react-aria-Popover">
+        <Calendar>
+          <div className="months">
+            <div className="month">
+              <header>
+                <Button quiet slot="previous">
+                  <ChevronLeft />
+                </Button>
+                <CalendarHeading />
+                <Button quiet slot="next">
+                  <ChevronRight />
+                </Button>
+              </header>
+              <CalendarGrid>
+                <CalendarGridHeader>
+                  {(day) => <CalendarHeaderCell>{day}</CalendarHeaderCell>}
+                </CalendarGridHeader>
+                <CalendarGridBody>
+                  {(date) => (
+                    <CalendarCell
+                      date={date}
+                      className="react-aria-CalendarCell button-base"
+                      data-variant="quiet"
+                      onHoverStart={() => onFocusDate?.(date.toString())}
+                    />
+                  )}
+                </CalendarGridBody>
+              </CalendarGrid>
+            </div>
+          </div>
         </Calendar>
       </Popover>
     </DatePicker>
@@ -273,10 +373,20 @@ export function Check({
   onChange: (value: boolean) => void
 }) {
   return (
-    <AriaCheckbox isSelected={isSelected} onChange={onChange} className="group flex items-center gap-2 text-sm">
-      <span className="h-3.5 w-3.5 border border-neutral-400 bg-white group-data-[selected]:bg-neutral-800" />
-      {label}
-    </AriaCheckbox>
+    <CheckboxField isSelected={isSelected} onChange={onChange}>
+      <CheckboxButton>
+        {({ isIndeterminate }) => (
+          <>
+            <div className="indicator">
+              <svg viewBox="0 0 18 18" aria-hidden="true" key={isIndeterminate ? 'indeterminate' : 'check'}>
+                {isIndeterminate ? <rect x={1} y={7.5} width={16} height={3} /> : <polyline points="2 9 7 14 16 4" />}
+              </svg>
+            </div>
+            {label}
+          </>
+        )}
+      </CheckboxButton>
+    </CheckboxField>
   )
 }
 
@@ -292,18 +402,11 @@ export function Prompt({
   children: ReactNode
 }) {
   return (
-    <ModalOverlay
-      isOpen={open}
-      onOpenChange={onOpenChange}
-      isDismissable
-      className="fixed inset-0 z-20 flex items-start justify-center bg-black/30 p-6"
-    >
-      <Modal className="w-full max-w-md border border-neutral-300 bg-white shadow-sm outline-none">
-        <Dialog className="p-3 outline-none">
-          <Heading slot="title" className="text-sm font-semibold">
-            {title}
-          </Heading>
-          <div className="mt-2 flex flex-col gap-2">{children}</div>
+    <ModalOverlay isOpen={open} onOpenChange={onOpenChange} isDismissable>
+      <Modal>
+        <Dialog className="admin-dialog">
+          <Heading slot="title">{title}</Heading>
+          <div className="page">{children}</div>
         </Dialog>
       </Modal>
     </ModalOverlay>

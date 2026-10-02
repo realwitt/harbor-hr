@@ -44,28 +44,28 @@ export function TeamPage() {
       <p className="text-sm">Direct reports only.</p>
       <ErrorText error={queue.error ?? types.error ?? decide.error} />
       <h2 className="text-sm font-semibold">Pending requests</h2>
-      <Table aria-label="Pending requests" className="w-full text-sm">
-        <TableHeader className="text-left text-xs text-neutral-500">
-          <Column isRowHeader className="py-1 font-medium">
-            Name
-          </Column>
-          <Column className="py-1 font-medium">Type</Column>
-          <Column className="py-1 font-medium">Days</Column>
-          <Column className="py-1 font-medium">Action</Column>
+      <Table aria-label="Pending requests">
+        <TableHeader>
+          <Column isRowHeader>Name</Column>
+          <Column>Type</Column>
+          <Column>Days</Column>
+          <Column>Action</Column>
         </TableHeader>
         <TableBody items={queue.data ?? []} renderEmptyState={() => <p className="py-2 text-sm">No pending request.</p>}>
           {(item) => (
-            <Row id={item.id} className="border-t border-neutral-200">
-              <Cell className="py-1 pr-2">{item.employeeName}</Cell>
-              <Cell className="py-1 pr-2">{names.get(item.leaveTypeId) ?? item.leaveTypeId}</Cell>
-              <Cell className="py-1 pr-2">{dayList(item.days)}</Cell>
-              <Cell className="flex gap-1 py-1">
-                <Button onPress={() => decide.mutate({ id: item.id, action: 'approve' })} isDisabled={decide.isPending}>
-                  Approve
-                </Button>
-                <Button quiet onPress={() => decide.mutate({ id: item.id, action: 'deny' })} isDisabled={decide.isPending}>
-                  Deny
-                </Button>
+            <Row id={item.id}>
+              <Cell>{item.employeeName}</Cell>
+              <Cell>{names.get(item.leaveTypeId) ?? item.leaveTypeId}</Cell>
+              <Cell>{dayList(item.days)}</Cell>
+              <Cell>
+                <span className="row-actions">
+                  <Button onPress={() => decide.mutate({ id: item.id, action: 'approve' })} isDisabled={decide.isPending}>
+                    Approve
+                  </Button>
+                  <Button quiet onPress={() => decide.mutate({ id: item.id, action: 'deny' })} isDisabled={decide.isPending}>
+                    Deny
+                  </Button>
+                </span>
               </Cell>
             </Row>
           )}
@@ -78,24 +78,22 @@ export function TeamPage() {
       </div>
       {!rangeOk ? <p className="text-sm">The end date is before the start date.</p> : null}
       <ErrorText error={calendar.error} />
-      <Table aria-label="Team calendar" className="w-full text-sm">
-        <TableHeader className="text-left text-xs text-neutral-500">
-          <Column isRowHeader className="py-1 font-medium">
-            Name
-          </Column>
-          <Column className="py-1 font-medium">Date</Column>
-          <Column className="py-1 font-medium">Hours</Column>
-          <Column className="py-1 font-medium">Type</Column>
-          <Column className="py-1 font-medium">Status</Column>
+      <Table aria-label="Team calendar">
+        <TableHeader>
+          <Column isRowHeader>Name</Column>
+          <Column>Date</Column>
+          <Column>Hours</Column>
+          <Column>Type</Column>
+          <Column>Status</Column>
         </TableHeader>
-        <TableBody items={days} renderEmptyState={() => <p className="py-2 text-sm">No team day off in this range.</p>}>
+        <TableBody items={days} renderEmptyState={() => <p>No team day off in this range.</p>}>
           {(day) => (
-            <Row id={day.id} className="border-t border-neutral-200">
-              <Cell className="py-1 pr-2">{day.name}</Cell>
-              <Cell className="py-1 pr-2">{day.on}</Cell>
-              <Cell className="py-1 pr-2">{day.hours} h</Cell>
-              <Cell className="py-1 pr-2">{names.get(day.leaveTypeId) ?? day.leaveTypeId}</Cell>
-              <Cell className="py-1">{statusLabel(day.status)}</Cell>
+            <Row id={day.id}>
+              <Cell>{day.name}</Cell>
+              <Cell>{day.on}</Cell>
+              <Cell>{day.hours} h</Cell>
+              <Cell>{names.get(day.leaveTypeId) ?? day.leaveTypeId}</Cell>
+              <Cell>{statusLabel(day.status)}</Cell>
             </Row>
           )}
         </TableBody>

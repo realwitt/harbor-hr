@@ -98,6 +98,47 @@ public class BusinessApiTests
     }
 
     [Fact]
+    public async Task Employee_cannot_list_the_directory()
+    {
+        await using var db = Open();
+        var (_, session) = await ReadyEmployee(db);
+        await using var api = await Start();
+        SignIn(api.Client, session);
+
+        var response = await api.Client.GetAsync("/api/admin/employees");
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+        using var json = JsonDocument.Parse(body);
+        Assert.Equal("not_authorized", json.RootElement.GetProperty("errors")[0].GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Hr_admin_lists_people_without_birth_dates()
+    {
+        await using var db = Open();
+        var (_, session) = await ReadyEmployee(db, EmployeeRole.HrAdmin);
+        await using var api = await Start();
+        SignIn(api.Client, session);
+
+        var response = await api.Client.GetAsync("/api/admin/employees");
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        Assert.DoesNotContain("bornOn", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("born_on", body, StringComparison.Ordinal);
+        using var json = JsonDocument.Parse(body);
+        var sam = json.RootElement.EnumerateArray().Single(row => row.GetProperty("email").GetString() == "sam.reyes@example.com");
+        Assert.Equal("Sam Reyes", sam.GetProperty("name").GetString());
+        Assert.Equal("employee", sam.GetProperty("role").GetString());
+        Assert.False(sam.GetProperty("hdhpEligible").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, sam.GetProperty("hsaCoverage").ValueKind);
+        Assert.Equal("Elias Witt", sam.GetProperty("managerName").GetString());
+        var elias = json.RootElement.EnumerateArray().Single(row => row.GetProperty("email").GetString() == "ew@eliaswitt.com");
+        Assert.Equal("hr_admin", elias.GetProperty("role").GetString());
+        Assert.True(elias.GetProperty("hdhpEligible").GetBoolean());
+        Assert.Equal("self", elias.GetProperty("hsaCoverage").GetString());
+    }
+
+    [Fact]
     public async Task Team_calendar_hides_people_who_do_not_report_to_Elias()
     {
         await using var db = Open();

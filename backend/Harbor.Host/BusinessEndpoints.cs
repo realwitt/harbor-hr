@@ -401,6 +401,15 @@ public static class BusinessEndpoints
         });
 
         var admin = app.MapGroup("/api/admin");
+        admin.MapGet("/employees", async (HttpContext http, HarborBusiness business, CancellationToken ct) =>
+        {
+            if (RequireHr(http) is IResult denied)
+            {
+                return denied;
+            }
+
+            return (await business.Employees(ct)).ToHttp();
+        });
         admin.MapGet("/leave-types", async (HttpContext http, HarborBusiness business, CancellationToken ct) =>
         {
             if (RequireHr(http) is IResult denied)

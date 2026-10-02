@@ -1,0 +1,1577 @@
+/* Button.css */
+.react-aria-Button {
+  border: none;
+  border-radius: var(--radius);
+  appearance: none;
+  font: var(--font-size) system-ui;
+  font-weight: 500;
+  margin: 0;
+  height: var(--spacing-8);
+  padding: 0 var(--spacing-3);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-1);
+  -webkit-tap-highlight-color: transparent;
+
+  > svg {
+    width: calc(var(--spacing) * 4.5);
+    height: calc(var(--spacing) * 4.5);
+  }
+
+  &:has(> svg:only-child) {
+    width: var(--spacing-8);
+    flex-shrink: 0;
+    padding: 0;
+    border-radius: 9999px;
+  }
+
+  &[data-pressed] {
+    scale: 0.95;
+  }
+
+  .react-aria-ProgressBar {
+    @media (prefers-color-scheme: dark) {
+      --highlight-background: var(--gray-1600);
+    }
+  }
+
+  kbd {
+    font: var(--font-size-sm) system-ui;
+    background: var(--highlight-hover);
+    border: 0.5px solid var(--tint-500);
+    padding: 0 var(--spacing-1);
+    border-radius: var(--radius-sm);
+    margin-inline-start: var(--spacing-3);
+  }
+}
+
+/* Form.css */
+.react-aria-Form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+
+  > .react-aria-Button {
+    align-self: start;
+  }
+}
+
+.react-aria-Form [role='alert'] {
+  border: 2px solid var(--invalid-color);
+  background: var(--overlay-background);
+  border-radius: 6px;
+  padding: 12px;
+  max-width: 250px;
+  outline: none;
+
+  &:focus {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+  }
+
+  h3 {
+    margin-top: 0;
+  }
+
+  p {
+    margin-bottom: 0;
+  }
+}
+
+.react-aria-Label {
+  display: block;
+  font: var(--font-size) system-ui;
+  color: var(--text-color);
+  margin-bottom: var(--spacing-2);
+  font-weight: 500;
+  cursor: default;
+}
+
+.react-aria-FieldError {
+  display: block;
+  font: var(--font-size-sm) system-ui;
+  color: var(--invalid-color);
+  margin-top: var(--spacing-1);
+  contain: inline-size;
+}
+
+.field-description {
+  display: block;
+  font: var(--font-size-sm) system-ui;
+  margin-top: var(--spacing-1);
+  contain: inline-size;
+
+  [data-invalid] > & {
+    display: none;
+  }
+}
+
+.field-Button {
+  background: var(--tint-200);
+  color: var(--tint-1400);
+  forced-color-adjust: none;
+  border-radius: var(--radius-sm);
+  border: none;
+  margin-left: calc(-1 * var(--spacing-8) + 4px);
+  height: calc(100% - 8px);
+  aspect-ratio: 1/1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition-property: scale, background;
+  transition-duration: 200ms;
+  -webkit-tap-highlight-color: transparent;
+
+  svg {
+    width: var(--spacing-4);
+    height: var(--spacing-4);
+  }
+
+  &:where([data-hovered], [data-pressed]) {
+    background: var(--tint-300);
+    color: var(--tint-1200);
+  }
+
+  @media (forced-colors: active) {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  &[data-pressed] {
+    scale: 0.9;
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+  }
+
+  &[data-disabled] {
+    background: none;
+    color: var(--text-color-disabled);
+  }
+}
+
+/* TextField.css */
+.react-aria-TextField {
+  display: flex;
+  flex-direction: column;
+}
+
+.react-aria-Input,
+.react-aria-TextArea {
+  width: 100%;
+  min-height: var(--spacing-8);
+  padding: 0 var(--spacing-3);
+  box-sizing: border-box;
+  margin: 0;
+  border: none;
+  border-radius: var(--radius);
+  font: var(--font-size) system-ui;
+  color: var(--field-text-color);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &::placeholder {
+    color: var(--text-color-placeholder);
+  }
+
+  &[data-focused] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -1px;
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+    &::placeholder {
+      color: var(--text-color-disabled);
+    }
+  }
+}
+
+.react-aria-TextArea {
+  min-height: 64px;
+  padding: var(--spacing-2) var(--spacing-3);
+}
+
+/* Select.css */
+.react-aria-Select {
+  color: var(--text-color);
+  position: relative;
+  width: 200px;
+
+  .react-aria-Button {
+    --button-color: var(--gray);
+    padding: 0 var(--spacing-2) 0 var(--spacing-3);
+    width: 100%;
+    min-width: 0;
+
+    &[data-pressed] {
+      scale: 1;
+    }
+  }
+
+  .react-aria-SelectValue {
+    flex: 1;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &[data-placeholder] {
+      color: var(--text-color-placeholder);
+      font-weight: normal;
+    }
+  }
+
+  .lucide-chevron-down {
+    margin-inline-start: var(--spacing-2);
+  }
+
+  .react-aria-SelectValue {
+    [slot='description'] {
+      display: none;
+    }
+  }
+}
+
+.select-popover[data-trigger='Select'] {
+  width: var(--trigger-width);
+  padding: 0;
+}
+
+/* DateField.css */
+.react-aria-DateField {
+  display: flex;
+  flex-direction: column;
+}
+
+.react-aria-DateInput {
+  display: inline;
+  padding: 0 var(--spacing-3);
+  box-sizing: border-box;
+  border-radius: var(--radius);
+  font: var(--font-size) system-ui;
+  color: var(--field-text-color);
+  height: var(--spacing-8);
+  line-height: var(--spacing-8);
+  width: fit-content;
+  min-width: 150px;
+  white-space: nowrap;
+  forced-color-adjust: none;
+  cursor: text;
+
+  &[data-focus-within] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -1px;
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+    cursor: default;
+  }
+}
+
+.react-aria-DateSegment {
+  padding: 2px;
+  font-size: var(--font-size);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: var(--field-text-color);
+  -webkit-tap-highlight-color: transparent;
+
+  &[data-type='literal'] {
+    padding: 0;
+  }
+
+  &[data-placeholder] {
+    color: var(--text-color-placeholder);
+  }
+
+  &:focus {
+    color: var(--highlight-foreground);
+    background: var(--highlight-background);
+    outline: none;
+    border-radius: 4px;
+    caret-color: transparent;
+  }
+
+  &[data-invalid] {
+    color: var(--invalid-color);
+
+    &:focus {
+      background: var(--highlight-background-invalid);
+      color: var(--highlight-foreground);
+    }
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+    cursor: default;
+  }
+}
+
+/* DatePicker.css */
+.react-aria-DatePicker {
+  max-width: 100%;
+
+  .react-aria-Group {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    height: var(--spacing-8);
+    border-radius: var(--radius);
+    overflow: clip;
+  }
+
+  .react-aria-DateInput {
+    flex: 1;
+    min-width: 0;
+    padding-right: var(--spacing-10);
+    overflow-x: auto;
+    overflow-y: clip;
+    scrollbar-width: none;
+  }
+
+  .field-Button {
+    margin-right: var(--spacing-1);
+  }
+}
+
+/* Calendar.css */
+.react-aria-Calendar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  width: fit-content;
+  max-width: 100%;
+  color: var(--text-color);
+  font: var(--font-size) system-ui;
+
+  .months {
+    display: flex;
+    gap: var(--spacing-3);
+  }
+
+  .month {
+    width: calc(var(--spacing-9) * 7);
+    min-width: calc(var(--spacing-7) * 7);
+    container-type: inline-size;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    margin: 0 var(--spacing-1) var(--spacing-4) var(--spacing-1);
+    min-height: var(--spacing-8);
+
+    .react-aria-CalendarHeading {
+      flex: 1;
+      margin: 0;
+      text-align: center;
+      font-size: var(--font-size-lg);
+    }
+  }
+
+  .react-aria-CalendarGrid {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    table-layout: fixed;
+
+    td,
+    th {
+      padding: 0;
+    }
+  }
+
+  [slot='errorMessage'] {
+    font: var(--font-size-sm) system-ui;
+    color: var(--invalid-color);
+  }
+}
+
+.react-aria-CalendarHeaderCell {
+  font-size: var(--font-size-sm);
+}
+
+.react-aria-CalendarCell {
+  --gap: var(--spacing-1);
+  width: calc((100cqw / 7) - var(--gap));
+  aspect-ratio: 1;
+  margin: calc(var(--gap) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size);
+  text-align: center;
+  border-radius: 9999px;
+  cursor: default;
+  forced-color-adjust: none;
+  transition: scale 200ms;
+  -webkit-tap-highlight-color: transparent;
+
+  @media (min-resolution: 200dpi) {
+    @container (width < 300px) {
+      --gap: 0px;
+    }
+  }
+
+  &[data-disabled] {
+    opacity: 0.5;
+  }
+
+  &[data-pressed] {
+    scale: 0.9;
+  }
+
+  &[data-unavailable] {
+    text-decoration: line-through;
+    color: var(--invalid-color);
+  }
+
+  &[data-invalid] {
+    --button-color: var(--invalid-color);
+  }
+}
+
+/* Checkbox.css */
+.react-aria-CheckboxField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+
+  [slot='description'],
+  .react-aria-FieldError {
+    margin-left: calc(var(--spacing) * 6.5);
+  }
+
+  &[data-disabled] [slot='description'] {
+    color: var(--text-color-disabled);
+  }
+}
+
+.react-aria-CheckboxButton {
+  --checkmark-color: var(--highlight-foreground);
+
+  display: flex;
+  /* This is needed so the HiddenInput is positioned correctly */
+  position: relative;
+  align-items: center;
+  gap: var(--spacing-2);
+  font: var(--font-size) system-ui;
+  color: var(--text-color);
+  forced-color-adjust: none;
+  -webkit-tap-highlight-color: transparent;
+
+  .indicator {
+    width: calc(var(--spacing) * 4.5);
+    height: calc(var(--spacing) * 4.5);
+    box-sizing: border-box;
+    border-radius: var(--radius-sm);
+    transition: all 200ms;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  svg {
+    width: calc(100% - var(--spacing-2));
+    height: calc(100% - var(--spacing-2));
+    fill: none;
+    stroke: var(--checkmark-color);
+    stroke-width: 3px;
+    stroke-dasharray: 22px;
+    stroke-dashoffset: 66;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: all 200ms;
+  }
+
+  &[data-selected],
+  &[data-indeterminate] {
+    svg {
+      stroke-dashoffset: 44;
+    }
+  }
+
+  &[data-indeterminate] {
+    svg {
+      stroke: none;
+      fill: var(--checkmark-color);
+    }
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+    --checkmark-color: var(--text-color-disabled);
+  }
+}
+
+/* Dialog.css */
+.react-aria-Dialog {
+  outline: none;
+  max-height: inherit;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: var(--spacing-10);
+
+  .react-aria-Heading[slot='title'] {
+    margin-top: 0;
+    margin-bottom: 1em;
+  }
+}
+
+/* Modal.css */
+.react-aria-ModalOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--page-width);
+  height: var(--page-height);
+  background: rgba(0 0 0 / 0.5);
+  overflow: clip;
+  z-index: 100;
+  font-family: system-ui;
+  font-size: var(--font-size);
+
+  &[data-entering] {
+    animation: modal-fade 200ms;
+  }
+
+  &[data-exiting] {
+    animation: modal-fade 150ms reverse ease-in;
+  }
+}
+
+.react-aria-Modal {
+  position: sticky;
+  max-height: calc(var(--visual-viewport-height) * 0.9);
+  top: calc(var(--visual-viewport-height) / 2);
+  margin-left: 50vw;
+  translate: -50% -50%;
+  box-shadow: 0 8px 32px rgba(0 0 0 / 0.2);
+  border-radius: var(--radius-xl);
+  background: var(--overlay-background);
+  color: var(--text-color);
+  outline: 1px solid var(--overlay-border);
+  width: max-content;
+  max-width: min(500px, 90vw);
+
+  &[data-entering] {
+    animation: modal-zoom 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .react-aria-TextField {
+    margin-bottom: 8px;
+  }
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-zoom {
+  from {
+    transform: scale(0.8);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Popover.css */
+.react-aria-Popover {
+  --background-color: var(--overlay-background);
+
+  outline: 1px solid var(--overlay-border);
+  box-sizing: border-box;
+  filter: drop-shadow(var(--popover-shadow));
+  border-radius: var(--radius-lg);
+  background: var(--background-color);
+  color: var(--text-color);
+  transition:
+    transform 200ms,
+    opacity 200ms;
+  font: var(--font-size) system-ui;
+  padding: 8px;
+  overflow: auto;
+
+  &[data-trigger='MenuTrigger'],
+  &[data-trigger='SubmenuTrigger'] {
+    padding: 0;
+  }
+
+  .react-aria-OverlayArrow svg {
+    display: block;
+    fill: var(--background-color);
+    stroke: var(--overlay-border);
+    paint-order: stroke;
+    stroke-width: 2px;
+  }
+
+  &[data-entering],
+  &[data-exiting] {
+    transform: var(--origin);
+    opacity: 0;
+  }
+
+  &[data-placement='top'] {
+    --origin: translateY(8px);
+
+    &:has(.react-aria-OverlayArrow) {
+      margin-bottom: 6px;
+    }
+  }
+
+  &[data-placement='bottom'] {
+    --origin: translateY(-8px);
+
+    &:has(.react-aria-OverlayArrow) {
+      margin-top: 6px;
+    }
+
+    .react-aria-OverlayArrow svg {
+      transform: rotate(180deg);
+    }
+  }
+
+  &[data-placement='right'] {
+    --origin: translateX(-8px);
+
+    &:has(.react-aria-OverlayArrow) {
+      margin-left: 6px;
+    }
+
+    .react-aria-OverlayArrow svg {
+      transform: rotate(90deg);
+    }
+  }
+
+  &[data-placement='left'] {
+    --origin: translateX(8px);
+
+    &:has(.react-aria-OverlayArrow) {
+      margin-right: 6px;
+    }
+
+    .react-aria-OverlayArrow svg {
+      transform: rotate(-90deg);
+    }
+  }
+}
+
+/* ListBox.css */
+.react-aria-ListBox {
+  max-height: inherit;
+  overflow: auto;
+  border: 0.5px solid var(--border-color);
+  border-radius: calc(var(--radius) + var(--spacing-1));
+  background: var(--overlay-background);
+  forced-color-adjust: none;
+  outline: none;
+  box-sizing: border-box;
+  font: var(--font-size) system-ui;
+  color: var(--text-color);
+
+  &:has(.react-aria-ListBoxSection) {
+    scroll-padding: 24px;
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -1px;
+  }
+
+  &[data-empty] {
+    align-items: center;
+    justify-content: center;
+    font-style: italic;
+  }
+
+  &[data-drop-target] {
+    outline: 2px solid var(--highlight-background);
+    outline-offset: -1px;
+    background: var(--highlight-overlay);
+  }
+
+  .react-aria-DropIndicator[data-drop-target] {
+    z-index: 3;
+    outline: 1px solid var(--highlight-background);
+  }
+}
+
+.react-aria-ListBoxSection {
+  .react-aria-Header {
+    position: sticky;
+    top: -0.5px;
+    z-index: 2;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-variation-settings: initial;
+    padding: var(--spacing-1) var(--spacing-4);
+    background: var(--gray-100);
+    border-block: 0.5px solid var(--gray-400);
+    cursor: default;
+    user-select: none;
+    box-shadow:
+      inset 0px 1px 0px white,
+      inset 0px -4px 8px var(--gray-200);
+
+    @media (prefers-color-scheme: dark) {
+      box-shadow: inset 0px 4px 8px var(--gray-200);
+    }
+  }
+
+  &:first-child .react-aria-Header {
+    margin-top: -0.5px;
+  }
+}
+
+.react-aria-ListBoxItem {
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius);
+  outline: none;
+  cursor: default;
+  color: var(--text-color);
+  font: var(--font-size) system-ui;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--spacing-8);
+  box-sizing: border-box;
+  position: relative;
+  transition-property: background, color, border-radius;
+  transition-duration: 200ms;
+  -webkit-tap-highlight-color: transparent;
+
+  --border-color: var(--gray-300);
+  &:not(:last-child)::after {
+    content: '';
+    display: block;
+    position: absolute;
+  }
+
+  &[data-pressed] {
+    background: var(--highlight-hover);
+    border-radius: var(--radius);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -2px;
+    z-index: 2;
+  }
+
+  &[data-selected] {
+    background: var(--highlight-background);
+    color: var(--highlight-foreground);
+    --border-color: transparent;
+
+    &[data-focus-visible] {
+      outline-color: var(--highlight-foreground);
+      outline-offset: -4px;
+    }
+
+    &[data-pressed] {
+      background: var(--highlight-background-pressed);
+    }
+
+    &:has(+ [data-selected]),
+    &:has(+ .react-aria-DropIndicator + [data-selected]) {
+      --border-color: rgb(255 255 255 / 0.3);
+    }
+  }
+
+  [slot='label'] {
+    font-weight: 500;
+  }
+
+  [slot='description'] {
+    font-size: var(--font-size-sm);
+  }
+
+  &[href] {
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-touch-callout: none;
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+  }
+
+  &[data-dragging] {
+    opacity: 0.6;
+  }
+
+  &[data-drop-target] {
+    outline: 2px solid var(--highlight-background);
+    background: var(--highlight-overlay);
+  }
+}
+
+.react-aria-ListBox {
+  &[data-layout='stack'] {
+    display: flex;
+
+    &[data-orientation='vertical'] {
+      flex-direction: column;
+      width: 250px;
+      max-height: 300px;
+      min-height: 100px;
+
+      .react-aria-ListBoxItem {
+        margin-inline: var(--spacing-1);
+
+        &:where(:nth-child(1 of .react-aria-ListBoxItem)) {
+          margin-top: var(--spacing);
+        }
+
+        &:where(:nth-last-child(1 of .react-aria-ListBoxItem)) {
+          margin-bottom: var(--spacing);
+        }
+
+        [role='presentation'] > & {
+          margin: 0; /* virtualizer */
+        }
+
+        &:not(:last-child)::after {
+          bottom: 0;
+          width: calc(100% - var(--spacing-6));
+          border-bottom: 0.5px solid var(--border-color);
+        }
+
+        &[data-selected] {
+          &:has(+ [data-selected]),
+          &:has(+ .react-aria-DropIndicator + [data-selected]) {
+            border-end-start-radius: 0;
+            border-end-end-radius: 0;
+          }
+
+          + [data-selected],
+          + .react-aria-DropIndicator + [data-selected] {
+            border-start-start-radius: 0;
+            border-start-end-radius: 0;
+          }
+        }
+      }
+    }
+
+    &[data-orientation='horizontal'] {
+      flex-direction: row;
+      width: 100%;
+
+      .react-aria-ListBoxItem {
+        min-width: max-content;
+        margin-block: var(--spacing-1);
+
+        &:nth-child(1 of .react-aria-ListBoxItem) {
+          margin-inline-start: var(--spacing);
+        }
+
+        &:nth-last-child(1 of .react-aria-ListBoxItem) {
+          margin-inline-end: var(--spacing);
+        }
+
+        &:not(:last-child)::after {
+          inset-inline-end: 0;
+          height: calc(100% - var(--spacing-2));
+          border-inline-end: 0.5px solid var(--border-color);
+        }
+
+        &[data-selected] {
+          &:has(+ [data-selected]),
+          &:has(+ .react-aria-DropIndicator + [data-selected]) {
+            border-start-end-radius: 0;
+            border-end-end-radius: 0;
+          }
+
+          + [data-selected],
+          + .react-aria-DropIndicator + [data-selected] {
+            border-start-start-radius: 0;
+            border-end-start-radius: 0;
+          }
+        }
+      }
+    }
+  }
+
+  &[data-layout='grid'] {
+    display: grid;
+    gap: var(--spacing-1);
+    width: fit-content;
+    max-width: 100%;
+    padding: var(--spacing-1);
+
+    &[data-orientation='vertical'] {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    &[data-orientation='horizontal'] {
+      grid-auto-flow: column;
+      grid-template-rows: auto auto;
+      grid-template-columns: none;
+      grid-auto-columns: 160px;
+    }
+  }
+}
+
+.react-aria-ListBoxLoadingIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  width: 100%;
+}
+
+.dropdown-listbox {
+  display: block;
+  max-height: inherit;
+  overflow: auto;
+  border-radius: inherit;
+  forced-color-adjust: none;
+  outline: none;
+  box-sizing: border-box;
+  font: var(--font-size) system-ui;
+  color: var(--text-color);
+
+  &[data-empty] {
+    min-height: var(--spacing-8);
+    padding: var(--spacing-2);
+  }
+
+  .react-aria-Header {
+    padding-left: var(--spacing-7);
+  }
+}
+
+.dropdown-item {
+  padding: calc((var(--spacing-8) - 1lh) / 2) var(--spacing-3) calc((var(--spacing-8) - 1lh) / 2)
+    var(--spacing-6);
+  box-sizing: border-box;
+  border-radius: var(--radius);
+  outline: none;
+  cursor: default;
+  color: var(--text-color);
+  font: var(--font-size) system-ui;
+  font-weight: 500;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--spacing-8);
+  margin-inline: var(--spacing-1);
+  -webkit-tap-highlight-color: transparent;
+
+  &:first-of-type {
+    margin-top: var(--spacing);
+  }
+
+  &:last-of-type {
+    margin-bottom: var(--spacing);
+  }
+
+  &[data-selected] {
+    font-weight: 500;
+    color: var(--text-color);
+
+    .lucide-check {
+      position: absolute;
+      top: 50%;
+      left: var(--spacing-1);
+      translate: 0 -50%;
+      stroke-width: 3px;
+      width: var(--spacing-4);
+      height: var(--spacing-4);
+    }
+  }
+
+  &[data-pressed] {
+    background: var(--highlight-hover);
+  }
+
+  &[data-focused] {
+    background: var(--highlight-background);
+    color: var(--highlight-foreground);
+  }
+
+  [slot='label'] {
+    font-weight: 500;
+  }
+
+  [slot='description'] {
+    font-size: var(--font-size-sm);
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+  }
+
+  &[href] {
+    text-decoration: none;
+    cursor: pointer;
+  }
+}
+
+/* Table.css */
+.react-aria-Table {
+  border: 0.5px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--overlay-background);
+  overflow: clip;
+  outline: none;
+  border-spacing: 0;
+  align-self: start;
+  width: 100%;
+  word-break: break-word;
+  forced-color-adjust: none;
+  font: var(--font-size) system-ui;
+
+  div& {
+    padding: 0;
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+  }
+
+  &[data-drop-target] {
+    outline: 2px solid var(--highlight-background);
+    background: var(--highlight-overlay);
+  }
+
+  &:has(.react-aria-TableBody[data-empty]) {
+    height: 100%;
+    min-height: 100px;
+  }
+
+  .react-aria-TableHeader {
+    color: var(--text-color);
+  }
+
+  .react-aria-TableBody {
+    padding: var(--spacing-1);
+
+    &[data-empty] {
+      text-align: center;
+      font-style: italic;
+    }
+  }
+}
+
+.react-aria-Row {
+  outline: none;
+  cursor: default;
+  color: var(--text-color);
+  position: relative;
+  transform: scale(1);
+  transition-property: background, color;
+  transition-duration: 200ms;
+  -webkit-tap-highlight-color: transparent;
+
+  tr:last-child& {
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -2px;
+  }
+
+  &[data-pressed] {
+    background: var(--gray-100);
+  }
+
+  &:nth-child(2n) {
+    background: var(--gray-100);
+    &[data-pressed] {
+      background: var(--gray-200);
+    }
+  }
+
+  &[data-selected] {
+    background: var(--highlight-background);
+    color: var(--highlight-foreground);
+    --focus-ring-color: var(--highlight-foreground);
+
+    &[data-focus-visible],
+    .react-aria-Cell[data-focus-visible] {
+      outline-offset: -4px;
+    }
+
+    &[data-pressed] {
+      background: var(--highlight-background-pressed);
+    }
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+  }
+
+  &[data-href] {
+    cursor: pointer;
+  }
+
+  &[data-dragging] {
+    opacity: 0.6;
+    transform: translateZ(0);
+  }
+
+  &[data-drop-target] {
+    outline: 2px solid var(--highlight-background);
+    background: var(--highlight-overlay);
+    z-index: 4;
+  }
+
+  .drag-button {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    text-align: center;
+
+    svg {
+      width: var(--spacing-4);
+      height: var(--spacing-4);
+    }
+
+    &[data-focus-visible] {
+      border-radius: 4px;
+      outline: 2px solid var(--focus-ring-color);
+    }
+  }
+
+  .react-aria-DropIndicator[data-drop-target] {
+    outline: 1px solid var(--highlight-background);
+    transform: translateZ(0);
+  }
+}
+
+.react-aria-Cell,
+.react-aria-Column {
+  padding: var(--spacing-2);
+  text-align: left;
+  outline: none;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+
+  div& {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  &:is(.react-aria-Row:last-child > :first-child) {
+    border-end-start-radius: var(--radius);
+  }
+
+  &:is(.react-aria-Row:last-child > :last-child) {
+    border-end-end-radius: var(--radius);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -2px;
+  }
+}
+
+.react-aria-Column {
+  --button-color: var(--gray);
+  --button-border: transparent;
+  --button-shadow: transparent;
+  --button-border-size: 0px;
+  cursor: default;
+  border-bottom: 0.5px solid var(--border-color);
+  border-inline-end: 0.5px solid var(--border-color);
+  position: relative;
+  z-index: calc(sibling-count() - sibling-index());
+
+  &:last-child {
+    border-inline-end: none;
+  }
+
+  &[data-pressed] {
+    background: var(--gray-200);
+  }
+
+  &[data-sort-direction] {
+    --button-color: var(--tint);
+
+    &[data-pressed] {
+      background: var(--tint-200);
+    }
+  }
+
+  .column-header {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+  }
+
+  .column-name {
+    flex: 1;
+    font: inherit;
+    text-align: start;
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-color: transparent;
+    border-radius: var(--radius-sm);
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring-color);
+      outline-offset: 2px;
+    }
+  }
+
+  .sort-indicator {
+    padding: 0 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &:not([data-sort-direction]) .sort-indicator {
+    visibility: hidden;
+  }
+}
+
+.react-aria-ColumnResizer {
+  width: 1px;
+  border-radius: var(--radius-sm);
+  background-color: var(--gray-500);
+  padding: 0 var(--spacing-2);
+  translate: var(--spacing-4) 0;
+  height: 32px;
+  margin: -16px 0;
+  flex: 0 0 auto;
+  touch-action: none;
+  box-sizing: content-box;
+  background-clip: content-box;
+
+  &[data-resizable-direction='both'] {
+    cursor: ew-resize;
+  }
+
+  &[data-resizable-direction='left'] {
+    cursor: e-resize;
+  }
+
+  &[data-resizable-direction='right'] {
+    cursor: w-resize;
+  }
+
+  &[data-focus-visible] {
+    background-color: var(--focus-ring-color);
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -2px;
+  }
+
+  &[data-resizing] {
+    width: 2px;
+    background-color: var(--highlight-background);
+  }
+}
+
+.react-aria-Cell {
+  transform: translateZ(0);
+  --border-color: var(--gray-300);
+  tr:not(:last-child) & {
+    border-bottom: 0.5px solid var(--border-color);
+  }
+
+  [data-selected]:has(+ [data-selected]) & {
+    --border-color: rgb(255 255 255 / 0.3);
+  }
+
+  @media (forced-colors: active) {
+    --border-color: ButtonBorder;
+  }
+
+  &[data-tree-column] {
+    --chevron-placeholder: var(--spacing-5);
+    padding-inline-start: calc(
+      var(--spacing-2) + (var(--table-row-level) - 1) * var(--spacing-4) +
+        var(--chevron-placeholder)
+    );
+
+    &[data-has-child-items] {
+      --chevron-placeholder: 0px;
+    }
+  }
+
+  .react-aria-Button[slot='chevron'] {
+    all: unset;
+    vertical-align: middle;
+    margin-inline-end: var(--spacing-1);
+
+    svg {
+      rotate: 0deg;
+      transition: rotate 200ms;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 3px;
+      width: var(--spacing-4);
+      height: var(--spacing-4);
+    }
+  }
+
+  &[data-expanded] .react-aria-Button[slot='chevron'] svg {
+    rotate: 90deg;
+  }
+}
+
+.react-aria-DropIndicator[data-drop-target] {
+  outline: 1px solid var(--highlight-background);
+  transform: translateZ(0);
+  translate: calc(68px + (var(--table-row-level) - 1) * var(--spacing-4)) 0;
+}
+
+.react-aria-Row .react-aria-CheckboxButton {
+  --checkmark-color: var(--highlight-background);
+  &[data-selected] .indicator {
+    --indicator-color: var(--highlight-foreground);
+    --indicator-shadow: transparent;
+  }
+}
+
+.react-aria-ResizableTableContainer {
+  width: 100%;
+  overflow: auto;
+  position: relative;
+  border: 0.5px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--overlay-background);
+
+  .react-aria-Table {
+    border: none;
+    border-radius: 0;
+
+    &:has(.react-aria-TableBody[data-empty]) {
+      height: 100%;
+    }
+  }
+
+  .react-aria-TableHeader {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .react-aria-Cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.react-aria-Cell img {
+  height: 30px;
+  width: 30px;
+  object-fit: cover;
+  display: block;
+}
+
+.react-aria-TableLoadingIndicator {
+  height: 32px;
+  position: relative;
+}
+
+.react-aria-TableFooter {
+  font-weight: bold;
+  background: var(--gray-200);
+}
+
+/* Link.css */
+.react-aria-Link {
+  color: var(--link-color);
+  font-size: var(--font-size);
+  transition-property: color, text-decoration-thickness;
+  transition-duration: 200ms;
+  text-decoration: underline;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  border-radius: var(--radius-sm);
+  -webkit-tap-highlight-color: transparent;
+
+  &[data-hovered] {
+    text-decoration-thickness: 1.5px;
+  }
+
+  &[data-pressed] {
+    color: var(--link-color-pressed);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+  }
+
+  &[data-disabled] {
+    cursor: default;
+    color: var(--text-color-disabled);
+  }
+}
+
+/* NavigationTree.css */
+.react-aria-NavigationTree {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: var(--spacing-1);
+  border: 0.5px solid var(--border-color);
+  border-radius: calc(var(--radius) + var(--spacing-1));
+  background: var(--overlay-background);
+  forced-color-adjust: none;
+  outline: none;
+  width: 250px;
+  max-height: 300px;
+  box-sizing: border-box;
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -1px;
+  }
+
+  .react-aria-NavigationTreeSection:not(:first-child) {
+    margin-top: var(--spacing-4);
+  }
+
+  .react-aria-NavigationTreeHeader {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    padding: var(--spacing-1) var(--spacing-2);
+    color: var(--text-color);
+  }
+}
+
+.react-aria-NavigationTreeItem {
+  --padding: var(--spacing-4);
+  display: flex;
+  position: relative;
+  align-items: center;
+  min-height: var(--spacing-8);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+  outline: none;
+  color: var(--text-color);
+  font: var(--font-size) system-ui;
+  -webkit-tap-highlight-color: transparent;
+  /* Indent each nested level. --tree-item-level is set on the row by React Aria (1-based). */
+  padding-inline-start: calc((var(--tree-item-level, 1) - 1) * var(--padding));
+
+  .react-aria-Link:before {
+    display: none;
+    content: '';
+    position: absolute;
+    inset-inline-start: 2px;
+    top: 50%;
+    width: 2px;
+    transform: translateY(-50%);
+    height: 1lh;
+    background: var(--text-color-hover);
+    font-weight: 600;
+    border-radius: 9999px;
+  }
+
+  a.react-aria-Link[data-hovered]:before {
+    display: block;
+  }
+
+  /* When a current-route ancestor is collapsed, tint it and show a small dot where the pill would be.
+   * The dot (rather than the full pill) signals "the current route is nested inside here" without
+   * looking selected, and gives a non-color affordance. Higher specificity than the hover rule above,
+   * so the dot wins over the hover pill on these rows. Targets .react-aria-Link so it works whether the
+   * row renders as a link or a plain span. */
+  &[data-current-ancestor]:not([data-expanded]) {
+    .react-aria-Link:before {
+      display: block;
+      height: 4px;
+      width: 4px;
+    }
+  }
+
+  /* React Aria sets data-current on the link matching the NavigationTree's selectedRoute. */
+  &[data-current] .react-aria-Link:before {
+    display: block;
+    background: var(--focus-ring-color);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: -2px;
+  }
+
+  &[data-disabled] {
+    color: var(--text-color-disabled);
+  }
+
+  .react-aria-Link {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    min-width: 0;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius);
+    color: inherit;
+    text-decoration: none;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* A row without an href renders its label as a non-interactive span. */
+  &:not([data-href]) .react-aria-Link {
+    cursor: default;
+  }
+
+  .react-aria-Button[slot='chevron'] {
+    all: unset;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--spacing-6);
+    height: var(--spacing-6);
+    border-radius: var(--radius);
+    cursor: default;
+    -webkit-tap-highlight-color: transparent;
+
+    svg {
+      width: var(--spacing-4);
+      height: var(--spacing-4);
+      rotate: 0deg;
+      transition: rotate 200ms;
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring-color);
+    }
+  }
+
+  &[data-expanded] .react-aria-Button[slot='chevron'] svg {
+    rotate: 90deg;
+  }
+}
+
+@media (forced-colors: active) {
+  .react-aria-NavigationTreeItem a.react-aria-Link {
+    color: LinkText;
+  }
+}

@@ -10,14 +10,21 @@ import {
 } from '@tanstack/react-router'
 import { ApiError } from './api'
 import { meQuery, queryClient } from './query'
-import { AdminPage } from './routes/admin'
+import { AuditPage } from './routes/admin/audit'
+import { CalendarPage } from './routes/admin/calendar'
+import { CapsPage } from './routes/admin/caps'
+import { InvitesPage } from './routes/admin/invites'
+import { LedgerPage } from './routes/admin/ledger'
+import { LeaveTypesPage } from './routes/admin/leave-types'
+import { PayPeriodsPage } from './routes/admin/pay-periods'
+import { PeoplePage } from './routes/admin/people'
 import { DeductionsPage } from './routes/deductions'
 import { HomePage } from './routes/home'
 import { InvitePage } from './routes/invite'
 import { LeavePage } from './routes/leave'
 import { LeaveNewPage } from './routes/leave-new'
 import { SecurityPage } from './routes/security'
-import { SignInPage } from './routes/sign-in'
+import { RecoverySignInPage, SignInPage } from './routes/sign-in'
 import { TeamPage } from './routes/team'
 import { Shell } from './shell'
 import { ErrorText } from './ui'
@@ -33,20 +40,32 @@ const inviteRoute = createRoute({
   component: InvitePage,
 })
 
+async function redirectIfSignedIn(): Promise<void> {
+  try {
+    const me = await queryClient.fetchQuery(meQuery)
+    throw redirect({ to: me.ready ? '/' : '/security' })
+  } catch (error) {
+    if (isRedirect(error)) {
+      throw error
+    }
+  }
+}
+
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-in',
-  beforeLoad: async () => {
-    try {
-      const me = await queryClient.fetchQuery(meQuery)
-      throw redirect({ to: me.ready ? '/' : '/security' })
-    } catch (error) {
-      if (isRedirect(error)) {
-        throw error
-      }
-    }
-  },
+  beforeLoad: redirectIfSignedIn,
   component: SignInPage,
+})
+
+const recoverySignInRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/sign-in/recovery',
+  validateSearch: (search: Record<string, unknown>): { email: string } => ({
+    email: typeof search.email === 'string' ? search.email : '',
+  }),
+  beforeLoad: redirectIfSignedIn,
+  component: RecoverySignInPage,
 })
 
 const authRoute = createRoute({
@@ -114,24 +133,101 @@ const teamRoute = createRoute({
   component: TeamPage,
 })
 
-const adminRoute = createRoute({
+async function requireAdmin(): Promise<void> {
+  const me = await queryClient.fetchQuery(meQuery)
+  if (me.role !== 'hr_admin') {
+    throw redirect({ to: '/' })
+  }
+}
+
+const adminIndexRoute = createRoute({
   getParentRoute: () => readyRoute,
   path: '/admin',
   beforeLoad: async () => {
-    const me = await queryClient.fetchQuery(meQuery)
-    if (me.role !== 'hr_admin') {
-      throw redirect({ to: '/' })
-    }
+    await requireAdmin()
+    throw redirect({ to: '/admin/people' })
   },
-  component: AdminPage,
+  component: () => null,
+})
+
+const adminPeopleRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/people',
+  beforeLoad: requireAdmin,
+  component: PeoplePage,
+})
+
+const adminInvitesRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/invites',
+  beforeLoad: requireAdmin,
+  component: InvitesPage,
+})
+
+const adminLeaveTypesRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/leave-types',
+  beforeLoad: requireAdmin,
+  component: LeaveTypesPage,
+})
+
+const adminCalendarRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/calendar',
+  beforeLoad: requireAdmin,
+  component: CalendarPage,
+})
+
+const adminLedgerRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/ledger',
+  beforeLoad: requireAdmin,
+  component: LedgerPage,
+})
+
+const adminPayRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/pay-periods',
+  beforeLoad: requireAdmin,
+  component: PayPeriodsPage,
+})
+
+const adminCapsRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/caps',
+  beforeLoad: requireAdmin,
+  component: CapsPage,
+})
+
+const adminAuditRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/audit',
+  beforeLoad: requireAdmin,
+  component: AuditPage,
 })
 
 const routeTree = rootRoute.addChildren([
   inviteRoute,
   signInRoute,
+  recoverySignInRoute,
   authRoute.addChildren([
     securityRoute,
-    readyRoute.addChildren([homeRoute, leaveRoute, leaveNewRoute, deductionsRoute, teamRoute, adminRoute]),
+    readyRoute.addChildren([
+      homeRoute,
+      leaveRoute,
+      leaveNewRoute,
+      deductionsRoute,
+      teamRoute,
+      adminIndexRoute,
+      adminPeopleRoute,
+      adminInvitesRoute,
+      adminLeaveTypesRoute,
+      adminCalendarRoute,
+      adminLedgerRoute,
+      adminPayRoute,
+      adminCapsRoute,
+      adminAuditRoute,
+    ]),
   ]),
 ])
 

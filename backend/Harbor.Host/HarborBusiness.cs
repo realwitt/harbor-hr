@@ -330,6 +330,55 @@ public sealed class HarborBusiness(HarborDbContext db)
         return BusinessResult.Ok(ToType(type));
     }
 
+    public async Task<BusinessResult> Employees(CancellationToken ct)
+    {
+        var people = await db.Employees.AsNoTracking()
+            .OrderBy(row => row.Name)
+            .Select(row => new EmployeeListRow(
+                row.Id,
+                row.Name,
+                row.Email,
+                row.Role,
+                row.HiredOn,
+                row.Jurisdiction,
+                row.Timezone,
+                row.HdhpEligible,
+                row.HsaCoverage,
+                row.TerminatedOn))
+            .ToListAsync(ct);
+        var links = await db.ManagerLinks.AsNoTracking()
+            .Where(row => row.EndedOn == null)
+            .Select(row => new { row.EmployeeId, row.ManagerId, row.EffectiveOn })
+            .ToListAsync(ct);
+        var names = people.ToDictionary(row => row.Id, row => row.Name);
+        var managers = links
+            .GroupBy(row => row.EmployeeId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderByDescending(row => row.EffectiveOn).First().ManagerId);
+
+        return BusinessResult.Ok(people.Select(row =>
+        {
+            var managerId = managers.TryGetValue(row.Id, out var id) ? id : (Guid?)null;
+            var managerName = managerId is Guid manager && names.TryGetValue(manager, out var name) ? name : null;
+            return new
+            {
+                id = row.Id,
+                name = row.Name,
+                email = row.Email,
+                role = row.Role,
+                hiredOn = row.HiredOn,
+                jurisdiction = row.Jurisdiction,
+                timezone = row.Timezone,
+                hdhpEligible = row.HdhpEligible,
+                hsaCoverage = row.HsaCoverage,
+                terminatedOn = row.TerminatedOn,
+                managerId,
+                managerName,
+            };
+        }).ToList());
+    }
+
     public async Task<BusinessResult> Blackouts(CancellationToken ct)
     {
         var rows = await db.BlackoutDates.AsNoTracking().OrderBy(row => row.OnDate).ToListAsync(ct);
@@ -930,6 +979,18 @@ public sealed class HarborBusiness(HarborDbContext db)
         "dependent_care_fsa" => DeductionKind.DependentCareFsa,
         _ => null,
     };
+
+    private sealed record EmployeeListRow(
+        Guid Id,
+        string Name,
+        string Email,
+        EmployeeRole Role,
+        DateOnly HiredOn,
+        string Jurisdiction,
+        string Timezone,
+        bool HdhpEligible,
+        HsaCoverage? HsaCoverage,
+        DateOnly? TerminatedOn);
 
     private sealed record AuditRecordResponse(
         long Id,

@@ -87,7 +87,7 @@ export function SecurityPage() {
         {passkeys.data?.map((passkey) => (
           <div key={passkey.id} className="flex items-center gap-2 text-sm">
             <span>{passkey.nickname || 'Passkey'}</span>
-            <span className="text-neutral-600">{passkey.createdAt}</span>
+            <span className="subtle">{passkey.createdAt}</span>
             <Button quiet onPress={() => removePasskey.mutate(passkey.id)} isDisabled={removePasskey.isPending}>
               Remove
             </Button>
@@ -132,7 +132,7 @@ export function SecurityPage() {
           {clients.data?.map((client) => (
             <div key={client.id} className="flex items-center gap-2 text-sm">
               <span>{client.clientName || 'Client'}</span>
-              <span className="text-neutral-600">{client.revokedAt ? `Revoked ${client.revokedAt}` : client.createdAt}</span>
+              <span className="subtle">{client.revokedAt ? `Revoked ${client.revokedAt}` : client.createdAt}</span>
               {client.revokedAt ? null : (
                 <Button quiet onPress={() => revoke.mutate(client.id)} isDisabled={revoke.isPending}>
                   Revoke

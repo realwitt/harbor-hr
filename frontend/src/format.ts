@@ -52,6 +52,109 @@ export function hoursText(value: number | null | undefined): string {
   return `${value} h`
 }
 
+const hoursPerWorkDay = 8
+
+export function dayCount(hours: number): string {
+  const days = Math.round((hours / hoursPerWorkDay) * 100) / 100
+  return days.toFixed(2).replace(/\.?0+$/, '')
+}
+
+export function daysText(hours: number): string {
+  const text = dayCount(hours)
+  return `${text} ${text === '1' ? 'day' : 'days'}`
+}
+
+export function leaveTypeLabel(code: string): string {
+  switch (code) {
+    case 'flex':
+      return 'Flex'
+    case 'jury':
+      return 'Jury'
+    case 'pto':
+      return 'PTO'
+    case 'unpaid':
+      return 'Unpaid'
+    default:
+      return code
+  }
+}
+
+export function monthDay(iso: string): string {
+  return dateText(iso, { month: 'short', day: 'numeric' })
+}
+
+export function mediumDate(iso: string): string {
+  return dateText(iso, { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+export function dateRange(start: string, end: string): string {
+  if (start.slice(0, 4) === end.slice(0, 4)) {
+    return `${monthDay(start)} – ${monthDay(end)}`
+  }
+
+  return `${mediumDate(start)} – ${mediumDate(end)}`
+}
+
+export function shortStamp(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function dateText(iso: string, options: Intl.DateTimeFormatOptions): string {
+  const year = Number(iso.slice(0, 4))
+  const month = Number(iso.slice(5, 7))
+  const day = Number(iso.slice(8, 10))
+  if (!year || !month || !day) {
+    return iso
+  }
+
+  return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' }).format(new Date(Date.UTC(year, month - 1, day)))
+}
+
+export function roleLabel(role: string): string {
+  return role === 'hr_admin' ? 'HR admin' : 'Employee'
+}
+
+export function planLabel(eligible: boolean, coverage: string | null): string {
+  if (!eligible) {
+    return 'No HDHP'
+  }
+
+  if (coverage === 'family') {
+    return 'HDHP · Family'
+  }
+
+  if (coverage === 'self') {
+    return 'HDHP · Self'
+  }
+
+  return 'HDHP'
+}
+
+export function coverageLabel(coverage: string): string {
+  switch (coverage) {
+    case 'self':
+      return 'Self'
+    case 'family':
+      return 'Family'
+    case 'catch_up':
+      return 'Catch-up'
+    case 'employee':
+      return 'Employee'
+    default:
+      return coverage
+  }
+}
+
 export function kindLabel(kind: string): string {
   switch (kind) {
     case 'hsa':
