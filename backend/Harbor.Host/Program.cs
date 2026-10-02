@@ -1,7 +1,9 @@
 using System.Threading.RateLimiting;
 using Harbor.Host;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,9 +62,33 @@ builder.Services.Configure<HostOptions>(options =>
     options.ShutdownTimeout = TimeSpan.FromSeconds(5);
     options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
 });
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    // Caddy is the only caller, and it is not a loopback proxy.
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+app.Use(async (http, next) =>
+{
+    http.Response.OnStarting(() =>
+    {
+        if (http.Response.StatusCode == StatusCodes.Status401Unauthorized
+            && http.Request.Path.StartsWithSegments("/mcp"))
+        {
+            var metadata = McpResource.BaseUrl(harbor.PublicBaseUrl).TrimEnd('/')
+                + "/.well-known/oauth-protected-resource";
+            http.Response.Headers.WWWAuthenticate = $"Bearer resource_metadata=\"{metadata}\"";
+        }
+
+        return Task.CompletedTask;
+    });
+    await next();
+});
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -83,6 +109,8 @@ using (var scope = app.Services.CreateScope())
         .OrderBy(e => e.Email)
         .Select(e => new { e.Role, e.HsaCoverage })
         .FirstOrDefaultAsync();
+    var applications = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+    await OAuthEndpoints.EnsureGrokClientAsync(applications, harbor.PublicBaseUrl, CancellationToken.None);
 }
 
 if (app.Environment.IsDevelopment())

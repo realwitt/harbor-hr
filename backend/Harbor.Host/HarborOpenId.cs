@@ -16,6 +16,7 @@ public static class HarborOpenId
 
     public static void Add(IServiceCollection services, HarborAuthOptions harbor)
     {
+        services.Configure<HarborAuthOptions>(copied => copied.PublicBaseUrl = harbor.PublicBaseUrl);
         var issuer = McpResource.BaseUrl(harbor.PublicBaseUrl);
         var resource = McpResource.Url(harbor.PublicBaseUrl);
         services.AddHttpContextAccessor();
@@ -51,7 +52,10 @@ public static class HarborOpenId
                 {
                     options.CodeChallengeMethods.Clear();
                     options.CodeChallengeMethods.Add(CodeChallengeMethods.Sha256);
+                    options.ClientAuthenticationMethods.Add(ClientAuthenticationMethods.None);
                 });
+                server.AddEventHandler<HandleConfigurationRequestContext>(builder =>
+                    builder.UseSingletonHandler<McpRegistrationEndpoint>().SetOrder(int.MaxValue - 10_000));
                 server.AddEventHandler<ValidateAuthorizationRequestContext>(builder =>
                     builder.UseSingletonHandler<McpResourceGuard>().SetOrder(int.MaxValue - 100_000));
                 server.AddEventHandler<ProcessSignInContext>(builder =>
@@ -76,6 +80,17 @@ public static class HarborOpenId
             .WithHttpTransport(options => options.Stateless = true)
             .WithTools<HarborMcpTools>()
             .WithResources<HarborMcpResources>();
+    }
+}
+
+public sealed class McpRegistrationEndpoint(IOptions<HarborAuthOptions> options)
+    : IOpenIddictServerHandler<HandleConfigurationRequestContext>
+{
+    public ValueTask HandleAsync(HandleConfigurationRequestContext context)
+    {
+        var issuer = McpResource.BaseUrl(options.Value.PublicBaseUrl).TrimEnd('/');
+        context.Metadata["registration_endpoint"] = issuer + "/connect/register";
+        return ValueTask.CompletedTask;
     }
 }
 

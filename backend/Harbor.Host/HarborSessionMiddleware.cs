@@ -46,6 +46,7 @@ public sealed class HarborSessionMiddleware(RequestDelegate next)
         }
 
         if (value.Equals("/.well-known/oauth-protected-resource", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/.well-known/oauth-protected-resource/mcp", StringComparison.OrdinalIgnoreCase)
             || value.Equals("/.well-known/oauth-authorization-server", StringComparison.OrdinalIgnoreCase)
             || value.Equals("/connect/register", StringComparison.OrdinalIgnoreCase)
             || value.Equals("/connect/token", StringComparison.OrdinalIgnoreCase)

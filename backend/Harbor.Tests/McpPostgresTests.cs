@@ -38,7 +38,12 @@ public sealed class McpPostgresTests(McpPostgresTests.McpApi fixture) : IClassFi
         var discovery = await client.GetAsync("/.well-known/oauth-authorization-server");
         var discoveryBody = await discovery.Content.ReadAsStringAsync();
         Assert.True(discovery.StatusCode == HttpStatusCode.OK, discoveryBody);
-        Assert.Contains("/connect/token", discoveryBody, StringComparison.Ordinal);
+        using var discoveryJson = JsonDocument.Parse(discoveryBody);
+        Assert.Contains("/connect/token", discoveryJson.RootElement.GetProperty("token_endpoint").GetString(), StringComparison.Ordinal);
+        Assert.Contains("/connect/register", discoveryJson.RootElement.GetProperty("registration_endpoint").GetString(), StringComparison.Ordinal);
+        Assert.Contains(
+            "none",
+            discoveryJson.RootElement.GetProperty("token_endpoint_auth_methods_supported").EnumerateArray().Select(item => item.GetString()));
 
         var created = await client.PostAsync("/connect/register", Json(
             $$"""

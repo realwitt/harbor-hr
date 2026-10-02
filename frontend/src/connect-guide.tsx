@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from './ui'
 
 const grokConnectors = 'https://grok.com/connectors'
+const grokClientId = 'grok'
 const chatGptConnectors = 'https://chatgpt.com/#settings/Connectors'
 
 export function ConnectGuide({ showPrep = false }: { showPrep?: boolean }) {
@@ -31,22 +32,28 @@ export function ConnectGuide({ showPrep = false }: { showPrep?: boolean }) {
         </ol>
       ) : null}
       <h2 className="text-sm font-semibold">Address</h2>
-      <p className="text-sm">Paste this address. Leave the client id and the client secret empty.</p>
+      <p className="text-sm">Paste this address.</p>
       <p className="connect-address">{address}</p>
       <Button onPress={() => void copy('Address copied.', address)}>Copy address</Button>
       <section className="connect-app">
         <h2 className="text-sm font-semibold">Grok</h2>
+        <p className="text-sm">Use grok.com. The Grok phone app cannot add this connector.</p>
         <ol className="connect-steps">
           <li>
             Open <a href={grokConnectors} target="_blank" rel="noreferrer">Grok connectors</a>.
           </li>
           <li>Click New Connector, then Custom.</li>
           <li>Name it Harbor.</li>
-          <li>Paste the address.</li>
-          <li>Add the connector.</li>
-          <li>Sign in if Harbor asks. Click Accept.</li>
-          <li>Start a new chat and ask for your leave balance.</li>
+          <li>Paste the address. Click Add Connector.</li>
+          <li>If Grok asks for a client id, paste grok. Leave the client secret empty.</li>
+          <li>Leave scopes empty. Set token auth method to none.</li>
+          <li>Click Save and connect.</li>
+          <li>Sign in with your passkey. Click Accept.</li>
         </ol>
+        <p className="connect-address">{grokClientId}</p>
+        <Button quiet onPress={() => void copy('Client id copied.', grokClientId)}>
+          Copy client id
+        </Button>
         <p className="text-sm">If you do not see Custom, ask a team admin to add the connector.</p>
       </section>
       <section className="connect-app">

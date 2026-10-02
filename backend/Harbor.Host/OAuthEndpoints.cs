@@ -19,19 +19,56 @@ public static class OAuthEndpoints
 
     public static void MapOAuth(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/.well-known/oauth-protected-resource", (IOptions<HarborAuthOptions> options) =>
-        {
-            var harbor = options.Value;
-            return Results.Json(new
-            {
-                resource = McpResource.Url(harbor.PublicBaseUrl),
-                authorization_servers = new[] { McpResource.BaseUrl(harbor.PublicBaseUrl) },
-                bearer_methods_supported = new[] { "header" },
-            });
-        });
+        app.MapGet("/.well-known/oauth-protected-resource", ProtectedResource);
+        app.MapGet("/.well-known/oauth-protected-resource/mcp", ProtectedResource);
 
         app.MapPost("/connect/register", RegisterAsync).RequireRateLimiting("auth");
         app.MapMethods("/connect/authorize", [HttpMethods.Get, HttpMethods.Post], AuthorizeAsync);
+    }
+
+    public const string GrokClientId = "grok";
+
+    public static async Task EnsureGrokClientAsync(
+        IOpenIddictApplicationManager applications,
+        string? publicBaseUrl,
+        CancellationToken ct)
+    {
+        if (await applications.FindByClientIdAsync(GrokClientId, ct) is not null)
+        {
+            return;
+        }
+
+        var resource = McpResource.Url(publicBaseUrl);
+        var descriptor = new OpenIddictApplicationDescriptor
+        {
+            ClientId = GrokClientId,
+            DisplayName = "Grok",
+            ClientType = ClientTypes.Public,
+            ApplicationType = ApplicationTypes.Web,
+            ConsentType = ConsentTypes.Explicit,
+        };
+        descriptor.RedirectUris.Add(new Uri("https://grok.com/connectors-oauth-exchange-code/"));
+        descriptor.Permissions.Add(Permissions.Endpoints.Authorization);
+        descriptor.Permissions.Add(Permissions.Endpoints.Token);
+        descriptor.Permissions.Add(Permissions.Endpoints.Revocation);
+        descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+        descriptor.Permissions.Add(Permissions.GrantTypes.RefreshToken);
+        descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
+        descriptor.Permissions.Add(Permissions.Prefixes.Scope + Scopes.OfflineAccess);
+        descriptor.Permissions.Add(Permissions.Prefixes.Resource + resource);
+        descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+        await applications.CreateAsync(descriptor, ct);
+    }
+
+    private static IResult ProtectedResource(IOptions<HarborAuthOptions> options)
+    {
+        var harbor = options.Value;
+        return Results.Json(new
+        {
+            resource = McpResource.Url(harbor.PublicBaseUrl),
+            authorization_servers = new[] { McpResource.BaseUrl(harbor.PublicBaseUrl) },
+            bearer_methods_supported = new[] { "header" },
+        });
     }
 
     private static async Task<IResult> RegisterAsync(
