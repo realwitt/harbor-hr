@@ -313,7 +313,7 @@ body {
   box-sizing: border-box;
   min-height: 100dvh;
   display: grid;
-  place-items: center;
+  place-items: safe center;
   padding: var(--spacing-4);
 }
 
@@ -747,6 +747,37 @@ body {
 
 .guest-card {
   width: min(100%, 24rem);
+}
+
+.connect-card {
+  width: min(100%, 36rem);
+}
+
+.connect-steps {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+  list-style: decimal;
+}
+
+.connect-steps li {
+  display: list-item;
+  list-style: decimal outside;
+}
+
+.connect-address {
+  margin: 0;
+  padding: var(--spacing-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--overlay-background);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 @media (max-width: 720px) {

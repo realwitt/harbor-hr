@@ -24,6 +24,8 @@ import { InvitePage } from './routes/invite'
 import { LeavePage } from './routes/leave'
 import { LeaveNewPage } from './routes/leave-new'
 import { SecurityPage } from './routes/security'
+import { safeAuthorizeNext } from './authorize-next'
+import { ConnectAiPage } from './routes/connect-ai'
 import { RecoverySignInPage, SignInPage } from './routes/sign-in'
 import { TeamPage } from './routes/team'
 import { Shell } from './shell'
@@ -40,9 +42,15 @@ const inviteRoute = createRoute({
   component: InvitePage,
 })
 
-async function redirectIfSignedIn(): Promise<void> {
+async function redirectIfSignedIn(next: string): Promise<void> {
   try {
     const me = await queryClient.fetchQuery(meQuery)
+    const authorize = safeAuthorizeNext(next)
+    if (authorize && typeof window !== 'undefined') {
+      window.location.replace(authorize)
+      return new Promise(() => {})
+    }
+
     throw redirect({ to: me.ready ? '/' : '/security' })
   } catch (error) {
     if (isRedirect(error)) {
@@ -51,20 +59,30 @@ async function redirectIfSignedIn(): Promise<void> {
   }
 }
 
+const connectAiRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/connect-ai',
+  component: ConnectAiPage,
+})
+
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-in',
-  beforeLoad: redirectIfSignedIn,
+  validateSearch: (search: Record<string, unknown>): { next: string } => ({
+    next: typeof search.next === 'string' ? search.next : '',
+  }),
+  beforeLoad: ({ search }) => redirectIfSignedIn(search.next),
   component: SignInPage,
 })
 
 const recoverySignInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-in/recovery',
-  validateSearch: (search: Record<string, unknown>): { email: string } => ({
+  validateSearch: (search: Record<string, unknown>): { email: string; next: string } => ({
     email: typeof search.email === 'string' ? search.email : '',
+    next: typeof search.next === 'string' ? search.next : '',
   }),
-  beforeLoad: redirectIfSignedIn,
+  beforeLoad: ({ search }) => redirectIfSignedIn(search.next),
   component: RecoverySignInPage,
 })
 
@@ -76,7 +94,7 @@ const authRoute = createRoute({
       await queryClient.fetchQuery(meQuery)
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        throw redirect({ to: '/sign-in' })
+        throw redirect({ to: '/sign-in', search: { next: '' } })
       }
 
       throw error
@@ -208,6 +226,7 @@ const adminAuditRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   inviteRoute,
+  connectAiRoute,
   signInRoute,
   recoverySignInRoute,
   authRoute.addChildren([

@@ -303,7 +303,7 @@ export function Shell() {
     mutationFn: () => api('/api/auth/sign-out', { method: 'POST' }),
     onSuccess: async () => {
       queryClient.clear()
-      await navigate({ to: '/sign-in' })
+      await navigate({ to: '/sign-in', search: { next: '' } })
     },
   })
 

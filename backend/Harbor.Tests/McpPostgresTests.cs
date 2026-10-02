@@ -90,6 +90,23 @@ public sealed class McpPostgresTests(McpPostgresTests.McpApi fixture) : IClassFi
     }
 
     [Fact]
+    public async Task Authorize_html_without_a_session_redirects_to_sign_in()
+    {
+        var client = fixture.CreateClient();
+        var clientId = await Register(client, "Phase Five Sign In");
+        var (_, challenge) = Pkce();
+        using var request = new HttpRequestMessage(HttpMethod.Get, Authorize(clientId, "", challenge));
+        request.Headers.Accept.ParseAdd("text/html");
+        var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var location = response.Headers.Location?.OriginalString ?? "";
+        Assert.StartsWith("/sign-in?next=", location, StringComparison.Ordinal);
+        var next = Uri.UnescapeDataString(location["/sign-in?next=".Length..]);
+        Assert.StartsWith("/connect/authorize?", next, StringComparison.Ordinal);
+        Assert.Contains("client_id=" + Uri.EscapeDataString(clientId), next, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Code_flow_access_token_audience_is_the_mcp_resource()
     {
         var client = fixture.CreateClient();

@@ -1,13 +1,25 @@
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { Link, getRouteApi, useNavigate } from '@tanstack/react-router'
+import { safeAuthorizeNext } from '../authorize-next'
 import { api } from '../api'
 import { meQuery, queryClient } from '../query'
 import type { Me } from '../types'
 import { Button, ErrorText, Page, TextField, fieldErrors } from '../ui'
 import { getPasskey } from '../webauthn'
 
+const signInRoute = getRouteApi('/sign-in')
 const recoveryRoute = getRouteApi('/sign-in/recovery')
+
+function openNext(next: string): boolean {
+  const target = safeAuthorizeNext(next)
+  if (!target) {
+    return false
+  }
+
+  window.location.assign(target)
+  return true
+}
 
 async function loadMe(): Promise<Me> {
   const me = await api<Me>('/api/auth/me')
@@ -21,6 +33,7 @@ function emailError(value: string): string | undefined {
 
 export function SignInPage() {
   const navigate = useNavigate()
+  const search = signInRoute.useSearch()
   const passkey = useMutation({
     mutationFn: async (email: string) => {
       const options = await api<unknown>('/api/auth/assert/options', {
@@ -35,6 +48,10 @@ export function SignInPage() {
       return loadMe()
     },
     onSuccess: (me) => {
+      if (openNext(search.next)) {
+        return
+      }
+
       void navigate({ to: me.ready ? '/' : '/security' })
     },
   })
@@ -80,11 +97,18 @@ export function SignInPage() {
             <ErrorText error={passkey.error} />
             <form.Subscribe selector={(state) => state.values.email}>
               {(email) => (
-                <Link className="trouble-link" to="/sign-in/recovery" search={{ email: email.trim() }}>
+                <Link
+                  className="trouble-link"
+                  to="/sign-in/recovery"
+                  search={{ email: email.trim(), next: search.next }}
+                >
                   Having trouble signing in?
                 </Link>
               )}
             </form.Subscribe>
+            <Link className="trouble-link" to="/connect-ai">
+              Connect with your AI
+            </Link>
           </form>
         </Page>
       </div>
@@ -104,6 +128,10 @@ export function RecoverySignInPage() {
       return loadMe()
     },
     onSuccess: (me) => {
+      if (openNext(search.next)) {
+        return
+      }
+
       void navigate({ to: me.ready ? '/' : '/security' })
     },
   })
@@ -168,7 +196,7 @@ export function RecoverySignInPage() {
               Use recovery code
             </Button>
             <ErrorText error={recovery.error} />
-            <Link className="trouble-link" to="/sign-in">
+            <Link className="trouble-link" to="/sign-in" search={{ next: search.next }}>
               Back to sign in
             </Link>
           </form>

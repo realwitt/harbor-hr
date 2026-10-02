@@ -49,7 +49,8 @@ public sealed class HarborSessionMiddleware(RequestDelegate next)
             || value.Equals("/.well-known/oauth-authorization-server", StringComparison.OrdinalIgnoreCase)
             || value.Equals("/connect/register", StringComparison.OrdinalIgnoreCase)
             || value.Equals("/connect/token", StringComparison.OrdinalIgnoreCase)
-            || value.Equals("/connect/revoke", StringComparison.OrdinalIgnoreCase))
+            || value.Equals("/connect/revoke", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/connect/authorize", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

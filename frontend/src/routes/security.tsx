@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { api } from '../api'
 import { meQuery } from '../query'
 import type { McpClient, PasskeyRow } from '../types'
@@ -80,6 +81,9 @@ export function SecurityPage() {
 
   return (
     <Page title="Security">
+      <Link className="text-sm" to="/connect-ai">
+        Connect with your AI
+      </Link>
       <ErrorText error={me.error ?? passkeys.error} />
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">Passkeys</h2>

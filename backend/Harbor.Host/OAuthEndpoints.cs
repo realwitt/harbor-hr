@@ -143,11 +143,27 @@ public static class OAuthEndpoints
         var caller = HarborCaller.Read(http);
         if (caller is null)
         {
+            if (WantsHtml(http) && HttpMethods.IsGet(http.Request.Method))
+            {
+                var next = "/connect/authorize" + http.Request.QueryString.Value;
+                return Results.Redirect("/sign-in?next=" + Uri.EscapeDataString(next));
+            }
+
             return Results.Json(new { error = "sign_in_required" }, statusCode: StatusCodes.Status401Unauthorized);
         }
 
         if (!caller.Ready)
         {
+            if (WantsHtml(http) && HttpMethods.IsGet(http.Request.Method))
+            {
+                return Results.Content(
+                    NoticePage(
+                        "Save your recovery codes on Security. Then start the connection again.",
+                        "/security",
+                        "Open Security"),
+                    "text/html; charset=utf-8");
+            }
+
             return Results.Json(new { error = "account_not_ready" }, statusCode: StatusCodes.Status403Forbidden);
         }
 
@@ -161,6 +177,16 @@ public static class OAuthEndpoints
             .FirstAsync(row => row.Id == caller.Employee.Id, ct);
         if (employee.McpEnabledAt is null)
         {
+            if (WantsHtml(http) && HttpMethods.IsGet(http.Request.Method))
+            {
+                return Results.Content(
+                    NoticePage(
+                        "MCP is off. Open Security and click Enable MCP. Then start the connection again.",
+                        "/security",
+                        "Open Security"),
+                    "text/html; charset=utf-8");
+            }
+
             return Results.Json(new { error = "mcp_disabled" }, statusCode: StatusCodes.Status403Forbidden);
         }
 
@@ -230,6 +256,23 @@ public static class OAuthEndpoints
             ? [Destinations.AccessToken, Destinations.IssuedToken]
             : []);
         return Results.SignIn(principal, authenticationScheme: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    private static bool WantsHtml(HttpContext http) =>
+        http.Request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase);
+
+    private static string NoticePage(string message, string href, string label)
+    {
+        return $"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head><meta charset="utf-8"><title>Harbor</title></head>
+            <body>
+            <p>{WebUtility.HtmlEncode(message)}</p>
+            <p><a href="{WebUtility.HtmlEncode(href)}">{WebUtility.HtmlEncode(label)}</a></p>
+            </body>
+            </html>
+            """;
     }
 
     private static string ConsentPage(string clientName, IQueryCollection query)

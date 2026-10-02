@@ -10,10 +10,11 @@ export default defineConfig({
     port: 5190,
     strictPort: true,
     proxy: {
-      '/api': { target: api },
-      '/connect': { target: api },
-      '/.well-known': { target: api },
-      '/mcp': { target: api },
+      // A bare prefix also matches /connect-ai. Require the end or a slash.
+      '^/api(/|$)': { target: api },
+      '^/connect(/|$)': { target: api },
+      '^/\\.well-known(/|$)': { target: api },
+      '^/mcp(/|$)': { target: api },
     },
   },
 })
