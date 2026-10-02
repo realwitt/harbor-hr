@@ -118,3 +118,8 @@ jobs:
           done
           [ "$code" = "200" ] || { echo "FAIL: hr.birbol.com healthz -> ${code:-err}"; exit 1; }
           echo "health gate passed"
+
+      - name: Prune old Harbor images
+        run: |
+          set -euo pipefail
+          bash src/deploy/prune-images.sh

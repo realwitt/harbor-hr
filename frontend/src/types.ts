@@ -6,6 +6,7 @@ export type Me = {
   ready: boolean
   passkeyCount: number
   unusedRecoveryCodeCount: number
+  mcpEnabledAt: string | null
 }
 
 export type LeaveType = {

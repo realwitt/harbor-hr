@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
 import { api } from '../api'
+import { ConnectGuide } from '../connect-guide'
 import { meQuery } from '../query'
 import type { McpClient, PasskeyRow } from '../types'
 import { Button, ErrorText, Page } from '../ui'
@@ -68,6 +68,9 @@ export function SecurityPage() {
       await stepUp('mcp_on')
       return api<{ mcpEnabledAt: string }>('/api/auth/mcp/enable', { method: 'POST' })
     },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: meQuery.queryKey })
+    },
   })
   const revoke = useMutation({
     mutationFn: async (id: string) => {
@@ -81,9 +84,6 @@ export function SecurityPage() {
 
   return (
     <Page title="Security">
-      <Link className="text-sm" to="/connect-ai">
-        Connect with your AI
-      </Link>
       <ErrorText error={me.error ?? passkeys.error} />
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">Passkeys</h2>
@@ -125,14 +125,20 @@ export function SecurityPage() {
         <ErrorText error={generate.error ?? acknowledge.error} />
       </section>
       {me.data?.ready ? (
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">MCP clients</h2>
-          <Button onPress={() => enableMcp.mutate()} isDisabled={enableMcp.isPending}>
-            Enable MCP
-          </Button>
-          {enableMcp.data ? <p className="text-sm">MCP on at {enableMcp.data.mcpEnabledAt}.</p> : null}
+          {me.data.mcpEnabledAt ? (
+            <p className="text-sm">MCP is on.</p>
+          ) : (
+            <>
+              <p className="text-sm">Click Enable MCP before you connect an AI app.</p>
+              <Button onPress={() => enableMcp.mutate()} isDisabled={enableMcp.isPending}>
+                Enable MCP
+              </Button>
+            </>
+          )}
           <ErrorText error={clients.error ?? enableMcp.error ?? revoke.error} />
-          {clients.data && clients.data.length === 0 ? <p className="text-sm">No MCP client.</p> : null}
+          {clients.data && clients.data.length === 0 ? <p className="text-sm">No AI app is connected yet.</p> : null}
           {clients.data?.map((client) => (
             <div key={client.id} className="flex items-center gap-2 text-sm">
               <span>{client.clientName || 'Client'}</span>
@@ -144,6 +150,7 @@ export function SecurityPage() {
               )}
             </div>
           ))}
+          <ConnectGuide />
         </section>
       ) : null}
     </Page>

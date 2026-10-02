@@ -317,6 +317,10 @@ body {
   padding: var(--spacing-4);
 }
 
+.guest-start {
+  place-items: start center;
+}
+
 .trouble-link {
   color: var(--link-color);
   font-size: var(--font-size-sm);
@@ -750,7 +754,18 @@ body {
 }
 
 .connect-card {
-  width: min(100%, 36rem);
+  width: min(100%, 40rem);
+}
+
+.connect-guide,
+.connect-app {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.connect-guide a {
+  color: var(--link-color);
 }
 
 .connect-steps {

@@ -827,6 +827,7 @@ public sealed class AuthWorkflow(
             ready = AccountReady.IsReady(employee.RecoverySavedAt, passkeys),
             passkeyCount = passkeys,
             unusedRecoveryCodeCount = unused,
+            mcpEnabledAt = employee.McpEnabledAt,
         });
     }
 
