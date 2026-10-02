@@ -23,12 +23,12 @@ prune_local() {
 prune_local "$REGISTRY/$OWNER/harbor-api"
 prune_local "$REGISTRY/$OWNER/harbor-web"
 
-if [ ! -f /opt/forge/.admin-credentials ]; then
-  echo "registry prune skipped: no admin credentials"
+if [ ! -r /opt/forge/.admin-credentials ]; then
+  echo "registry prune skipped: credentials are not readable"
   exit 0
 fi
 
-TOKEN=$(awk '/claude-ops/{print $NF}' /opt/forge/.admin-credentials)
+TOKEN=$(awk '/claude-ops/{print $NF}' /opt/forge/.admin-credentials || true)
 if [ -z "${TOKEN}" ]; then
   echo "registry prune skipped: no token"
   exit 0
