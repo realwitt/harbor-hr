@@ -9,11 +9,12 @@ using Microsoft.Extensions.Options;
 
 namespace Harbor.Host;
 
-public sealed class AuthWorkflow(
+public sealed partial class AuthWorkflow(
     HarborDbContext db,
     IFido2 fido2,
     IOptions<HarborAuthOptions> options,
     IHttpClientFactory httpClientFactory,
+    IMailer mailer,
     ILogger<AuthWorkflow> logger)
 {
     public async Task<AuthResult> CreateInvite(HarborCaller? caller, InviteBody body, CancellationToken ct)
@@ -76,7 +77,7 @@ public sealed class AuthWorkflow(
             logger.LogInformation("Invite path {Path}", path);
         }
 
-        return AuthResult.Success(new { path });
+        return AuthResult.Success(new InviteCreated(path, invite.Id));
     }
 
     public async Task<AuthResult> OpenInvite(string token, CancellationToken ct)
@@ -863,6 +864,37 @@ public sealed class AuthWorkflow(
             CreatedBy = null,
         });
         await AuditGuc.Apply(db, new AuditStamp(null, "system", null, "system", "bootstrap", null, null), ct);
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return "/invite/" + token;
+    }
+
+    public async Task<string?> CreateDevInviteAsync(CancellationToken ct)
+    {
+        var elias = await db.Employees.AsNoTracking().FirstOrDefaultAsync(row => row.Email == "ew@eliaswitt.com", ct);
+        if (elias is null)
+        {
+            return null;
+        }
+
+        var token = AuthTokens.NewToken();
+        var now = DateTimeOffset.UtcNow;
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        db.Invites.Add(new Invite
+        {
+            Id = Guid.NewGuid(),
+            Email = elias.Email,
+            Name = elias.Name,
+            Role = elias.Role,
+            ManagerId = null,
+            HiredOn = elias.HiredOn,
+            Jurisdiction = elias.Jurisdiction,
+            Timezone = elias.Timezone,
+            TokenHash = AuthTokens.Sha256Hex(token),
+            ExpiresAt = now.Add(AuthLimits.Invite),
+            CreatedBy = null,
+        });
+        await AuditGuc.Apply(db, new AuditStamp(null, "system", null, "system", "dev-invite", null, null), ct);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return "/invite/" + token;

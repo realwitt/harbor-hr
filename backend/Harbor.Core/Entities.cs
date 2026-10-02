@@ -188,6 +188,19 @@ public sealed class RecoveryCode
     public DateTimeOffset? UsedAt { get; set; }
 }
 
+public sealed class JoinRequest
+{
+    public Guid Id { get; set; }
+    public required string Email { get; set; }
+    public required string Name { get; set; }
+    public string? Note { get; set; }
+    public string Status { get; set; } = "pending";
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+    public Guid? DecidedBy { get; set; }
+    public Guid? InviteId { get; set; }
+}
+
 public sealed class Invite
 {
     public Guid Id { get; set; }

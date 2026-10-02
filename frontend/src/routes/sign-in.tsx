@@ -2,6 +2,7 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { Link, getRouteApi, useNavigate } from '@tanstack/react-router'
 import { safeAuthorizeNext } from '../authorize-next'
+import { joinReturnId } from '../join-return'
 import { api } from '../api'
 import { meQuery, queryClient } from '../query'
 import type { Me } from '../types'
@@ -49,6 +50,12 @@ export function SignInPage() {
     },
     onSuccess: (me) => {
       if (openNext(search.next)) {
+        return
+      }
+
+      const requestId = joinReturnId(search.returnTo)
+      if (requestId && me.ready) {
+        void navigate({ to: '/admin/join-requests/$id', params: { id: requestId } })
         return
       }
 
@@ -100,7 +107,7 @@ export function SignInPage() {
                 <Link
                   className="trouble-link"
                   to="/sign-in/recovery"
-                  search={{ email: email.trim(), next: search.next }}
+                  search={{ email: email.trim(), next: search.next, returnTo: search.returnTo }}
                 >
                   Having trouble signing in?
                 </Link>
@@ -108,6 +115,9 @@ export function SignInPage() {
             </form.Subscribe>
             <Link className="trouble-link" to="/connect-ai">
               Connect with your AI
+            </Link>
+            <Link className="trouble-link" to="/join">
+              Request to join
             </Link>
           </form>
         </Page>
@@ -129,6 +139,12 @@ export function RecoverySignInPage() {
     },
     onSuccess: (me) => {
       if (openNext(search.next)) {
+        return
+      }
+
+      const requestId = joinReturnId(search.returnTo)
+      if (requestId && me.ready) {
+        void navigate({ to: '/admin/join-requests/$id', params: { id: requestId } })
         return
       }
 
@@ -196,7 +212,7 @@ export function RecoverySignInPage() {
               Use recovery code
             </Button>
             <ErrorText error={recovery.error} />
-            <Link className="trouble-link" to="/sign-in" search={{ next: search.next }}>
+            <Link className="trouble-link" to="/sign-in" search={{ next: search.next, returnTo: search.returnTo }}>
               Back to sign in
             </Link>
           </form>

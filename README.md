@@ -2,17 +2,14 @@
 
 Harbor is the internal HR application.
 
-## Run the API
+## Run
 
-The API listens on http://localhost:5088.
+Postgres stays on 127.0.0.1:5432. Put the two connection strings in `backend/Harbor.Host/appsettings.Development.json`. That file stays out of git.
 
-1. Set `HARBOR_OWNER_CONNECTION` to the owner connection string.
-2. Set `HARBOR_APP_CONNECTION` to the application connection string.
-3. Run `dotnet run --project backend/Harbor.Host`.
+- `make` starts the API at http://localhost:5088 and the web app at http://localhost:5190.
+- `make seed` prints a link. Open the link to create a passkey for ew@eliaswitt.com.
 
 `GET /api/healthz` returns `{"status":"ok"}`.
-
-You can put the two connection strings in `backend/Harbor.Host/appsettings.Development.json`. That file stays out of git.
 
 ## SQL
 

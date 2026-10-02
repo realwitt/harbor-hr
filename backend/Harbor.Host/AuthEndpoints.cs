@@ -3,6 +3,14 @@ using Microsoft.Extensions.Options;
 
 namespace Harbor.Host;
 
+public sealed class JoinRequestBody
+{
+    public string? Email { get; set; }
+    public string? Name { get; set; }
+    public string? Note { get; set; }
+    public string? TurnstileToken { get; set; }
+}
+
 public sealed class InviteBody
 {
     public string? Email { get; set; }
@@ -67,6 +75,16 @@ public static class AuthEndpoints
         McpSwitch.Map(group);
         group.MapPost("/invites", async (InviteBody body, HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>
             Respond(http, await auth.CreateInvite(HarborCaller.Read(http), body, ct), options.Value));
+        group.MapPost("/join-requests", async (JoinRequestBody body, HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>
+            Respond(http, await auth.RequestToJoin(body, ct), options.Value));
+        group.MapGet("/join-requests", async (HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>
+            Respond(http, await auth.ListJoinRequests(HarborCaller.Read(http), ct), options.Value));
+        group.MapGet("/join-requests/{id:guid}", async (Guid id, HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>
+            Respond(http, await auth.OpenJoinRequest(HarborCaller.Read(http), id, ct), options.Value));
+        group.MapPost("/join-requests/{id:guid}/approve", async (Guid id, InviteBody body, HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>
+            Respond(http, await auth.ApproveJoinRequest(HarborCaller.Read(http), id, body, ct), options.Value));
+        group.MapPost("/join-requests/{id:guid}/dismiss", async (Guid id, HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>
+            Respond(http, await auth.DismissJoinRequest(HarborCaller.Read(http), id, ct), options.Value));
         group.MapGet("/invites/{token}", async (string token, HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>
             Respond(http, await auth.OpenInvite(token, ct), options.Value));
         group.MapPost("/register/options", async (TokenBody body, HttpContext http, AuthWorkflow auth, IOptions<HarborAuthOptions> options, CancellationToken ct) =>

@@ -5,14 +5,33 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 
-var builder = WebApplication.CreateBuilder(args);
+var seedDev = args.Contains("--seed-dev");
+var builder = WebApplication.CreateBuilder(args.Where(arg => arg != "--seed-dev").ToArray());
+if (seedDev)
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
+}
 
 var ownerConnection = builder.Configuration["HARBOR_OWNER_CONNECTION"]
     ?? throw new InvalidOperationException("HARBOR_OWNER_CONNECTION is required.");
 var appConnection = builder.Configuration["HARBOR_APP_CONNECTION"]
     ?? throw new InvalidOperationException("HARBOR_APP_CONNECTION is required.");
 
-using var bootstrapLog = LoggerFactory.Create(logging => logging.AddConsole());
+using var bootstrapLog = LoggerFactory.Create(logging =>
+{
+    logging.AddConsole(options =>
+    {
+        if (seedDev)
+        {
+            options.LogToStandardErrorThreshold = LogLevel.Trace;
+        }
+    });
+    if (seedDev)
+    {
+        logging.SetMinimumLevel(LogLevel.Warning);
+    }
+});
 SqlMigrator.Apply(
     ownerConnection,
     SqlMigrator.FindSqlDirectory(),
@@ -36,6 +55,11 @@ builder.Services.AddHttpClient("turnstile", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(5);
 });
+builder.Services.AddHttpClient("cloudflare-email", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddSingleton<IMailer, CloudflareMailer>();
 builder.Services.AddFido2(config =>
 {
     config.RPID = harbor.RelyingPartyId;
@@ -111,6 +135,36 @@ using (var scope = app.Services.CreateScope())
         .FirstOrDefaultAsync();
     var applications = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
     await OAuthEndpoints.EnsureGrokClientAsync(applications, harbor.PublicBaseUrl, CancellationToken.None);
+}
+
+if (seedDev)
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        Console.Error.WriteLine("The dev invite runs only in Development.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    using var scope = app.Services.CreateScope();
+    var auth = scope.ServiceProvider.GetRequiredService<AuthWorkflow>();
+    var path = await auth.CreateDevInviteAsync(CancellationToken.None);
+    if (path is null)
+    {
+        Console.Error.WriteLine("The dev invite was not created. ew@eliaswitt.com is missing.");
+        Environment.ExitCode = 1;
+        return;
+    }
+
+    var web = Environment.GetEnvironmentVariable("HARBOR_DEV_WEB_ORIGIN");
+    if (string.IsNullOrWhiteSpace(web))
+    {
+        web = "http://localhost:5190";
+    }
+
+    Console.WriteLine("Open this link to create a passkey for ew@eliaswitt.com.");
+    Console.WriteLine(web.TrimEnd('/') + path);
+    return;
 }
 
 if (app.Environment.IsDevelopment())

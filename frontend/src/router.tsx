@@ -9,11 +9,13 @@ import {
   redirect,
 } from '@tanstack/react-router'
 import { ApiError } from './api'
+import { safeJoinReturn } from './join-return'
 import { meQuery, queryClient } from './query'
 import { AuditPage } from './routes/admin/audit'
 import { CalendarPage } from './routes/admin/calendar'
 import { CapsPage } from './routes/admin/caps'
 import { InvitesPage } from './routes/admin/invites'
+import { JoinRequestPage, JoinRequestsPage } from './routes/admin/join-requests'
 import { LedgerPage } from './routes/admin/ledger'
 import { LeaveTypesPage } from './routes/admin/leave-types'
 import { PayPeriodsPage } from './routes/admin/pay-periods'
@@ -21,6 +23,7 @@ import { PeoplePage } from './routes/admin/people'
 import { DeductionsPage } from './routes/deductions'
 import { HomePage } from './routes/home'
 import { InvitePage } from './routes/invite'
+import { JoinPage } from './routes/join'
 import { LeavePage } from './routes/leave'
 import { LeaveNewPage } from './routes/leave-new'
 import { SecurityPage } from './routes/security'
@@ -68,8 +71,9 @@ const connectAiRoute = createRoute({
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-in',
-  validateSearch: (search: Record<string, unknown>): { next: string } => ({
+  validateSearch: (search: Record<string, unknown>): { next: string; returnTo: string } => ({
     next: typeof search.next === 'string' ? search.next : '',
+    returnTo: safeJoinReturn(typeof search.returnTo === 'string' ? search.returnTo : ''),
   }),
   beforeLoad: ({ search }) => redirectIfSignedIn(search.next),
   component: SignInPage,
@@ -78,9 +82,10 @@ const signInRoute = createRoute({
 const recoverySignInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-in/recovery',
-  validateSearch: (search: Record<string, unknown>): { email: string; next: string } => ({
+  validateSearch: (search: Record<string, unknown>): { email: string; next: string; returnTo: string } => ({
     email: typeof search.email === 'string' ? search.email : '',
     next: typeof search.next === 'string' ? search.next : '',
+    returnTo: safeJoinReturn(typeof search.returnTo === 'string' ? search.returnTo : ''),
   }),
   beforeLoad: ({ search }) => redirectIfSignedIn(search.next),
   component: RecoverySignInPage,
@@ -89,12 +94,15 @@ const recoverySignInRoute = createRoute({
 const authRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'auth',
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     try {
       await queryClient.fetchQuery(meQuery)
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        throw redirect({ to: '/sign-in', search: { next: '' } })
+        throw redirect({
+          to: '/sign-in',
+          search: { next: '', returnTo: safeJoinReturn(location.pathname) },
+        })
       }
 
       throw error
@@ -182,6 +190,26 @@ const adminInvitesRoute = createRoute({
   component: InvitesPage,
 })
 
+const adminJoinRequestsRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/join-requests',
+  beforeLoad: requireAdmin,
+  component: JoinRequestsPage,
+})
+
+const adminJoinRequestRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/admin/join-requests/$id',
+  beforeLoad: requireAdmin,
+  component: JoinRequestPage,
+})
+
+const joinRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/join',
+  component: JoinPage,
+})
+
 const adminLeaveTypesRoute = createRoute({
   getParentRoute: () => readyRoute,
   path: '/admin/leave-types',
@@ -229,6 +257,7 @@ const routeTree = rootRoute.addChildren([
   connectAiRoute,
   signInRoute,
   recoverySignInRoute,
+  joinRoute,
   authRoute.addChildren([
     securityRoute,
     readyRoute.addChildren([
@@ -240,6 +269,8 @@ const routeTree = rootRoute.addChildren([
       adminIndexRoute,
       adminPeopleRoute,
       adminInvitesRoute,
+      adminJoinRequestsRoute,
+      adminJoinRequestRoute,
       adminLeaveTypesRoute,
       adminCalendarRoute,
       adminLedgerRoute,

@@ -31,6 +31,7 @@ type NavTo =
   | '/security'
   | '/admin/people'
   | '/admin/invites'
+  | '/admin/join-requests'
   | '/admin/leave-types'
   | '/admin/calendar'
   | '/admin/ledger'
@@ -44,6 +45,7 @@ const adminMenus: { label: string; items: { to: NavTo; label: string }[] }[] = [
     items: [
       { to: '/admin/people', label: 'Directory' },
       { to: '/admin/invites', label: 'Invites' },
+      { to: '/admin/join-requests', label: 'Join requests' },
     ],
   },
   {
@@ -303,7 +305,7 @@ export function Shell() {
     mutationFn: () => api('/api/auth/sign-out', { method: 'POST' }),
     onSuccess: async () => {
       queryClient.clear()
-      await navigate({ to: '/sign-in', search: { next: '' } })
+      await navigate({ to: '/sign-in', search: { next: '', returnTo: '' } })
     },
   })
 

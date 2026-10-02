@@ -29,6 +29,7 @@ public sealed class HarborDbContext(DbContextOptions<HarborDbContext> options) :
     public DbSet<WebauthnCredential> WebauthnCredentials => Set<WebauthnCredential>();
     public DbSet<RecoveryCode> RecoveryCodes => Set<RecoveryCode>();
     public DbSet<Invite> Invites => Set<Invite>();
+    public DbSet<JoinRequest> JoinRequests => Set<JoinRequest>();
     public DbSet<AppSession> AppSessions => Set<AppSession>();
     public DbSet<WebauthnChallenge> WebauthnChallenges => Set<WebauthnChallenge>();
     public DbSet<McpClient> McpClients => Set<McpClient>();
@@ -63,6 +64,7 @@ public sealed class HarborDbContext(DbContextOptions<HarborDbContext> options) :
         modelBuilder.Entity<WebauthnCredential>().HasKey(e => e.Id);
         modelBuilder.Entity<RecoveryCode>().HasKey(e => e.Id);
         modelBuilder.Entity<Invite>().HasKey(e => e.Id);
+        modelBuilder.Entity<JoinRequest>().HasKey(e => e.Id);
         modelBuilder.Entity<AppSession>().HasKey(e => e.Id);
         modelBuilder.Entity<WebauthnChallenge>().HasKey(e => e.Id);
         modelBuilder.Entity<McpClient>().HasKey(e => e.Id);

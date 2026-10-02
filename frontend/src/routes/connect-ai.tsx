@@ -8,7 +8,7 @@ export function ConnectAiPage() {
       <div className="guest-card connect-card panel">
         <Page title="Connect with your AI">
           <ConnectGuide showPrep />
-          <Link className="trouble-link" to="/sign-in" search={{ next: '' }}>
+          <Link className="trouble-link" to="/sign-in" search={{ next: '', returnTo: '' }}>
             Back to sign in
           </Link>
           <Link className="trouble-link" to="/security">

@@ -44,6 +44,10 @@ services:
       Harbor__Origins__1: https://hr.birbol.com
       Harbor__TurnstileSecret: ${Harbor__TurnstileSecret:-}
       Harbor__MailWorkerUrl: ${Harbor__MailWorkerUrl:-}
+      Harbor__CloudflareAccountId: ${Harbor__CloudflareAccountId:-}
+      Harbor__CloudflareEmailToken: ${Harbor__CloudflareEmailToken:-}
+      Harbor__MailFrom: ${Harbor__MailFrom:-harbor@birbol.com}
+      Harbor__JoinNotifyEmail: ${Harbor__JoinNotifyEmail:-ew@eliaswitt.com}
     depends_on:
       harbor-db:
         condition: service_healthy
