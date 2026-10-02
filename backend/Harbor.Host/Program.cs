@@ -125,7 +125,7 @@ app.MapOAuth();
 app.MapBusiness();
 app.MapMcp("/mcp").RequireAuthorization(HarborOpenId.Policy);
 
-using (var scope = app.Services.CreateScope())
+await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<HarborDbContext>();
     _ = db.Model;
@@ -143,16 +143,22 @@ if (seedDev)
     {
         Console.Error.WriteLine("The dev invite runs only in Development.");
         Environment.ExitCode = 1;
+        await app.DisposeAsync();
         return;
     }
 
-    using var scope = app.Services.CreateScope();
-    var auth = scope.ServiceProvider.GetRequiredService<AuthWorkflow>();
-    var path = await auth.CreateDevInviteAsync(CancellationToken.None);
+    string? path;
+    await using (var scope = app.Services.CreateAsyncScope())
+    {
+        var auth = scope.ServiceProvider.GetRequiredService<AuthWorkflow>();
+        path = await auth.CreateDevInviteAsync(CancellationToken.None);
+    }
+
     if (path is null)
     {
         Console.Error.WriteLine("The dev invite was not created. ew@eliaswitt.com is missing.");
         Environment.ExitCode = 1;
+        await app.DisposeAsync();
         return;
     }
 
@@ -164,12 +170,13 @@ if (seedDev)
 
     Console.WriteLine("Open this link to create a passkey for ew@eliaswitt.com.");
     Console.WriteLine(web.TrimEnd('/') + path);
+    await app.DisposeAsync();
     return;
 }
 
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
+    await using var scope = app.Services.CreateAsyncScope();
     var auth = scope.ServiceProvider.GetRequiredService<AuthWorkflow>();
     var path = await auth.CreateBootstrapInviteAsync(CancellationToken.None);
     if (path is not null)

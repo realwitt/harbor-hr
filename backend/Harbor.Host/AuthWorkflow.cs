@@ -19,14 +19,9 @@ public sealed partial class AuthWorkflow(
 {
     public async Task<AuthResult> CreateInvite(HarborCaller? caller, InviteBody body, CancellationToken ct)
     {
-        if (caller is null)
+        if (RequireAdmin(caller) is AuthResult denied)
         {
-            return AuthResult.Fail(StatusCodes.Status401Unauthorized, "sign_in_required");
-        }
-
-        if (!caller.Ready || caller.Employee.Role != EmployeeRole.HrAdmin)
-        {
-            return AuthResult.Fail(StatusCodes.Status403Forbidden, "not_authorized");
+            return denied;
         }
 
         var email = NormalizeEmail(body.Email);
@@ -62,12 +57,12 @@ public sealed partial class AuthWorkflow(
             Timezone = timezone,
             TokenHash = AuthTokens.Sha256Hex(token),
             ExpiresAt = now.Add(AuthLimits.Invite),
-            CreatedBy = caller.Employee.Id,
+            CreatedBy = caller!.Employee.Id,
         };
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         db.Invites.Add(invite);
-        await AuditGuc.Apply(db, Stamp(caller.Employee.Id, "session", "invite", null), ct);
+        await AuditGuc.Apply(db, Stamp(caller!.Employee.Id, "session", "invite", null), ct);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
@@ -90,7 +85,7 @@ public sealed partial class AuthWorkflow(
         var now = DateTimeOffset.UtcNow;
         var hash = AuthTokens.Sha256Hex(token.Trim());
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        var invite = await db.Invites.FirstOrDefaultAsync(row => row.TokenHash == hash, ct);
+        var invite = await db.Invites.AsNoTracking().FirstOrDefaultAsync(row => row.TokenHash == hash, ct);
         if (invite is null || invite.ConsumedAt is not null || invite.ExpiresAt <= now)
         {
             await tx.RollbackAsync(ct);
@@ -146,10 +141,9 @@ public sealed partial class AuthWorkflow(
 
     public async Task<AuthResult> Register(RegisterBody body, Guid? previousSessionId, CancellationToken ct)
     {
-        if (!await TurnstileOk(body.TurnstileToken, ct))
+        if (await TurnstileFailure(body.TurnstileToken, ct) is AuthResult denied)
         {
-            var code = string.IsNullOrWhiteSpace(body.TurnstileToken) ? "turnstile_required" : "turnstile_failed";
-            return AuthResult.Fail(StatusCodes.Status400BadRequest, code);
+            return denied;
         }
 
         if (body.Attestation?.Response?.ClientDataJson is null)
@@ -183,9 +177,7 @@ public sealed partial class AuthWorkflow(
         }
 
         var employee = await db.Employees.FirstOrDefaultAsync(row => row.Email == invite.Email, ct);
-        var exclude = Descriptors(await db.WebauthnCredentials.AsNoTracking()
-            .Where(row => employee != null && row.EmployeeId == employee.Id)
-            .ToListAsync(ct));
+        var exclude = await Descriptors(employee?.Id, ct);
         RegisteredPublicKeyCredential created;
         try
         {
@@ -834,7 +826,7 @@ public sealed partial class AuthWorkflow(
 
     public async Task<string?> CreateBootstrapInviteAsync(CancellationToken ct)
     {
-        var elias = await db.Employees.FirstOrDefaultAsync(row => row.Email == "ew@eliaswitt.com", ct);
+        var elias = await db.Employees.AsNoTracking().FirstOrDefaultAsync(row => row.Email == "ew@eliaswitt.com", ct);
         if (elias is null)
         {
             return null;
@@ -1011,6 +1003,17 @@ public sealed partial class AuthWorkflow(
         var credentialId = args.CredentialId;
         var taken = await db.WebauthnCredentials.AnyAsync(row => row.CredentialId == credentialId, ct);
         return !taken;
+    }
+
+    private async Task<AuthResult?> TurnstileFailure(string? token, CancellationToken ct)
+    {
+        if (await TurnstileOk(token, ct))
+        {
+            return null;
+        }
+
+        var code = string.IsNullOrWhiteSpace(token) ? "turnstile_required" : "turnstile_failed";
+        return AuthResult.Fail(StatusCodes.Status400BadRequest, code);
     }
 
     private async Task<bool> TurnstileOk(string? token, CancellationToken ct)

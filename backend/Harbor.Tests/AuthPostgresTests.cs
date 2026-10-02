@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Harbor.Tests;
 
+[Collection("harbor_test")]
 public class AuthPostgresTests
 {
     private static readonly DateTimeOffset Now = new(2026, 8, 1, 15, 0, 0, TimeSpan.Zero);
@@ -18,7 +19,7 @@ public class AuthPostgresTests
         var unpaid = await UnpaidType(db);
         var workflow = new LeaveWorkflow(db);
         var preview = await workflow.PreviewAsync(Leave(employee, unpaid), CancellationToken.None);
-        Assert.True(preview.Succeeded);
+        Assert.True(preview.Succeeded, string.Join("; ", preview.Errors.Select(error => error.Code + ": " + error.Message)));
         var previewValue = preview.Value ?? throw new InvalidOperationException("The preview is missing.");
         var quote = await db.ActionQuotes.SingleAsync(row => row.Id == previewValue.QuoteId);
         quote.ConfirmedAt = Now;
@@ -36,7 +37,7 @@ public class AuthPostgresTests
         await db.SaveChangesAsync();
         var saved = await workflow.SubmitAsync(Submit(employee, unpaid, previewValue.QuoteId, "ready"), CancellationToken.None);
 
-        Assert.True(saved.Succeeded);
+        Assert.True(saved.Succeeded, string.Join("; ", saved.Errors.Select(error => error.Code + ": " + error.Message)));
         await using var after = Open();
         Assert.Equal(1, await after.LeaveRequests.CountAsync(row => row.EmployeeId == employee));
     }

@@ -56,8 +56,7 @@ public static class BusinessEndpoints
                 return ApiResults.InvalidMessage("The date is not an ISO date.");
             }
 
-            var asOf = on < today ? on : today;
-            return (await business.Balances(caller.Employee, asOf, on, ct)).ToHttp();
+            return (await business.Balances(caller.Employee, today, on, ct)).ToHttp();
         });
         leave.MapGet("/requests", async (HttpContext http, HarborBusiness business, CancellationToken ct) =>
         {

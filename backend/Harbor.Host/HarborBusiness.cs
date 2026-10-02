@@ -79,8 +79,9 @@ public sealed class HarborBusiness(HarborDbContext db)
         return BusinessResult.Ok(rows.Select(ToType).ToList());
     }
 
-    public async Task<BusinessResult> Balances(Employee employee, DateOnly asOf, DateOnly on, CancellationToken ct)
+    public async Task<BusinessResult> Balances(Employee employee, DateOnly today, DateOnly on, CancellationToken ct)
     {
+        var asOf = on < today ? on : today;
         var types = await db.LeaveTypes.AsNoTracking().OrderBy(row => row.Code).ToListAsync(ct);
         var payDates = await db.PayPeriods.AsNoTracking().Select(row => row.PayDate).ToListAsync(ct);
         var rows = new List<LeaveBalanceResponse>(types.Count);

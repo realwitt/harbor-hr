@@ -121,7 +121,7 @@ public static class DeductionEstimate
         });
     }
 
-    public static int MarginalFederalRateBps(long taxableCents, IReadOnlyList<TaxBracket> brackets)
+    private static int MarginalFederalRateBps(long taxableCents, IReadOnlyList<TaxBracket> brackets)
     {
         if (taxableCents < 0)
         {

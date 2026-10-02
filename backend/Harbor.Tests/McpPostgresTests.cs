@@ -18,6 +18,7 @@ using Npgsql;
 
 namespace Harbor.Tests;
 
+[Collection("harbor_test")]
 public sealed class McpPostgresTests(McpPostgresTests.McpApi fixture) : IClassFixture<McpPostgresTests.McpApi>
 {
     private const string Resource = "http://localhost:5088/mcp";
@@ -201,7 +202,7 @@ public sealed class McpPostgresTests(McpPostgresTests.McpApi fixture) : IClassFi
         var confirmed = await check.ActionQuotes.Where(row => row.Id == quoteId).Select(row => row.ConfirmedAt).SingleAsync();
         Assert.NotNull(confirmed);
         var access = await CountAccess(check, issued.McpClientId, "submit_leave_request", "ok");
-        Assert.True(access >= 1);
+        Assert.InRange(access, 1, int.MaxValue);
     }
 
     [Fact]

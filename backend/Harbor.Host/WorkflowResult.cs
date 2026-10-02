@@ -26,7 +26,7 @@ public sealed class WorkflowResult<T>
     };
 }
 
-public sealed record LeaveQuotePayload
+internal sealed record LeaveQuotePayload
 {
     public required string Action { get; init; }
     public Guid LeaveTypeId { get; init; }
@@ -37,14 +37,14 @@ public sealed record LeaveQuotePayload
     public Guid RequestId { get; init; }
 }
 
-public sealed record DeductionQuotePayload
+internal sealed record DeductionQuotePayload
 {
     public required string Kind { get; init; }
     public int PerPaycheckCents { get; init; }
     public string? QualifyingEvent { get; init; }
 }
 
-public static class QuoteJson
+internal static class QuoteJson
 {
     public static readonly JsonSerializerOptions Options = new()
     {

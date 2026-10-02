@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Harbor.Tests;
 
+[Collection("harbor_test")]
 public class LeaveSubmitPostgresTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 1, 15, 0, 0, TimeSpan.Zero);
@@ -21,7 +22,7 @@ public class LeaveSubmitPostgresTests
         var saved = await Submit(workflow, employee, unpaid, first.QuoteId, "overlap-a", "mcp", true, "2026-06-15");
         var rejected = await Submit(workflow, employee, unpaid, second.QuoteId, "overlap-b", "mcp", true, "2026-06-15");
 
-        Assert.True(saved.Succeeded);
+        Assert.True(saved.Succeeded, string.Join("; ", saved.Errors.Select(error => error.Code + ": " + error.Message)));
         Assert.False(rejected.Succeeded);
         Assert.Contains(rejected.Errors, error => error.Code == LeaveRequestPolicy.Overlap);
         await using var check = Open();
@@ -104,7 +105,7 @@ public class LeaveSubmitPostgresTests
         var preview = await Preview(workflow, employee, unpaid, "2026-06-18");
         var saved = await Submit(workflow, employee, unpaid, preview.QuoteId, "mcp-" + Guid.NewGuid().ToString("N"), "mcp", true, "2026-06-18");
 
-        Assert.True(saved.Succeeded);
+        Assert.True(saved.Succeeded, string.Join("; ", saved.Errors.Select(error => error.Code + ": " + error.Message)));
         Assert.False(saved.Value!.Replay);
         await using var check = Open();
         var quote = await check.ActionQuotes.AsNoTracking().SingleAsync(row => row.Id == preview.QuoteId);
@@ -135,7 +136,7 @@ public class LeaveSubmitPostgresTests
             Now = Now,
             RequestId = "phase2",
         });
-        Assert.True(result.Succeeded);
+        Assert.True(result.Succeeded, string.Join("; ", result.Errors.Select(error => error.Code + ": " + error.Message)));
         return result.Value!;
     }
 

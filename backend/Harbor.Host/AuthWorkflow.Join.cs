@@ -1,6 +1,5 @@
 using System.Net;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Harbor.Host;
 
@@ -10,10 +9,9 @@ public sealed partial class AuthWorkflow
 {
     public async Task<AuthResult> RequestToJoin(JoinRequestBody body, CancellationToken ct)
     {
-        if (!await TurnstileOk(body.TurnstileToken, ct))
+        if (await TurnstileFailure(body.TurnstileToken, ct) is AuthResult denied)
         {
-            var code = string.IsNullOrWhiteSpace(body.TurnstileToken) ? "turnstile_required" : "turnstile_failed";
-            return AuthResult.Fail(StatusCodes.Status400BadRequest, code);
+            return denied;
         }
 
         var email = NormalizeEmail(body.Email);
@@ -52,7 +50,7 @@ public sealed partial class AuthWorkflow
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == PostgresErrorCodes.UniqueViolation)
+        catch (DbUpdateException ex) when (PostgresErrors.IsUnique(ex))
         {
             await tx.RollbackAsync(ct);
             return AuthResult.Fail(StatusCodes.Status409Conflict, "request_pending");

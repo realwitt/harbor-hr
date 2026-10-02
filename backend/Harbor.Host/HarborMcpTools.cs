@@ -372,8 +372,7 @@ public sealed class HarborMcpTools
         }
 
         var employee = await db.Employees.AsNoTracking().FirstAsync(row => row.Id == caller.EmployeeId, ct);
-        var asOf = date < today ? date : today;
-        var result = await business.Balances(employee, asOf, date, ct);
+        var result = await business.Balances(employee, today, date, ct);
         return result.Status == StatusCodes.Status200OK
             ? Ok(result.Body)
             : Fail(JsonSerializer.Serialize(result.Body, HarborJson.Options));

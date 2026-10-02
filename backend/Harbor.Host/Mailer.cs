@@ -60,7 +60,7 @@ public sealed class CloudflareMailer(
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            logger.LogWarning("Mail send failed: {Message}", ex.Message);
+            logger.LogWarning(ex, "Mail send failed.");
             return false;
         }
     }

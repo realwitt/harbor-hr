@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Harbor.Tests;
 
+[Collection("harbor_test")]
 public class BusinessApiTests
 {
     [Fact]
@@ -224,8 +225,8 @@ public class BusinessApiTests
         var access = json.RootElement.GetProperty("accessEvents");
         Assert.Equal(JsonValueKind.Array, records.ValueKind);
         Assert.Equal(JsonValueKind.Array, access.ValueKind);
-        Assert.True(records.GetArrayLength() <= 100);
-        Assert.True(access.GetArrayLength() <= 100);
+        Assert.InRange(records.GetArrayLength(), 0, 100);
+        Assert.InRange(access.GetArrayLength(), 0, 100);
         Assert.Contains("read_audit", body, StringComparison.Ordinal);
     }
 

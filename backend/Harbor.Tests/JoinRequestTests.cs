@@ -17,6 +17,7 @@ using Npgsql;
 
 namespace Harbor.Tests;
 
+[Collection("harbor_test")]
 public class JoinRequestTests
 {
     private const string Notify = "ew@eliaswitt.com";
@@ -145,6 +146,7 @@ public class JoinRequestTests
         await using var api = await Start(new RecordingMailer());
         var created = await api.Client.PostAsync("/api/auth/join-requests", Json(Person(email)));
         var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.OK, createdBody);
         using var createdJson = JsonDocument.Parse(createdBody);
         var id = createdJson.RootElement.GetProperty("id").GetGuid();
 

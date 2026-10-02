@@ -405,14 +405,14 @@ public sealed class LeaveWorkflow(HarborDbContext db)
         return WorkflowResult<LeaveCommandResult>.Ok(new LeaveCommandResult(leave.Id, leave.Status, false));
     }
 
-    private async Task<EvaluatedLeave> EvaluateAsync(
+    private Task<EvaluatedLeave> EvaluateAsync(
         Employee employee,
         Employee actor,
         LeaveType type,
         LeavePreviewRequest request,
         CancellationToken ct)
     {
-        return await EvaluateCoreAsync(
+        return EvaluateCoreAsync(
             employee,
             actor,
             type,
@@ -425,14 +425,14 @@ public sealed class LeaveWorkflow(HarborDbContext db)
             ct);
     }
 
-    private async Task<EvaluatedLeave> EvaluateAsync(
+    private Task<EvaluatedLeave> EvaluateAsync(
         Employee employee,
         Employee actor,
         LeaveType type,
         LeaveSubmitRequest request,
         CancellationToken ct)
     {
-        return await EvaluateCoreAsync(
+        return EvaluateCoreAsync(
             employee,
             actor,
             type,
