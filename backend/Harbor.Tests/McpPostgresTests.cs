@@ -130,6 +130,8 @@ public sealed class McpPostgresTests(McpPostgresTests.McpApi fixture) : IClassFi
         Assert.True(page.StatusCode == HttpStatusCode.OK, html);
         Assert.Contains("Phase Five", html, StringComparison.Ordinal);
         Assert.Contains("This client can act as you.", html, StringComparison.Ordinal);
+        Assert.Contains("Allow access", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"mark\"", html, StringComparison.Ordinal);
 
         var accept = await client.PostAsync("/connect/authorize", Form(AcceptForm(clientId, challenge)));
         var acceptBody = await accept.Content.ReadAsStringAsync();

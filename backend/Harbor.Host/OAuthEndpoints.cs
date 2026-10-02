@@ -1,6 +1,4 @@
-using System.Net;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
 using Harbor;
 using Microsoft.AspNetCore;
@@ -194,7 +192,7 @@ public static class OAuthEndpoints
             if (WantsHtml(http) && HttpMethods.IsGet(http.Request.Method))
             {
                 return Results.Content(
-                    NoticePage(
+                    GuestHtml.Notice(
                         "Save your recovery codes on Security. Then start the connection again.",
                         "/security",
                         "Open Security"),
@@ -217,7 +215,7 @@ public static class OAuthEndpoints
             if (WantsHtml(http) && HttpMethods.IsGet(http.Request.Method))
             {
                 return Results.Content(
-                    NoticePage(
+                    GuestHtml.Notice(
                         "MCP is off. Open Security and click Enable MCP. Then start the connection again.",
                         "/security",
                         "Open Security"),
@@ -236,7 +234,7 @@ public static class OAuthEndpoints
         var displayName = await applications.GetDisplayNameAsync(application, ct) ?? "MCP client";
         if (HttpMethods.IsGet(http.Request.Method))
         {
-            return Results.Content(ConsentPage(displayName, http.Request.Query), "text/html; charset=utf-8");
+            return Results.Content(GuestHtml.Consent(displayName, http.Request.Query), "text/html; charset=utf-8");
         }
 
         if (!http.Request.HasFormContentType)
@@ -297,52 +295,6 @@ public static class OAuthEndpoints
 
     private static bool WantsHtml(HttpContext http) =>
         http.Request.Headers.Accept.ToString().Contains("text/html", StringComparison.OrdinalIgnoreCase);
-
-    private static string NoticePage(string message, string href, string label)
-    {
-        return $"""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head><meta charset="utf-8"><title>Harbor</title></head>
-            <body>
-            <p>{WebUtility.HtmlEncode(message)}</p>
-            <p><a href="{WebUtility.HtmlEncode(href)}">{WebUtility.HtmlEncode(label)}</a></p>
-            </body>
-            </html>
-            """;
-    }
-
-    private static string ConsentPage(string clientName, IQueryCollection query)
-    {
-        var fields = new StringBuilder();
-        foreach (var pair in query)
-        {
-            foreach (var value in pair.Value)
-            {
-                fields.Append("<input type=\"hidden\" name=\"")
-                    .Append(WebUtility.HtmlEncode(pair.Key))
-                    .Append("\" value=\"")
-                    .Append(WebUtility.HtmlEncode(value))
-                    .Append("\">");
-            }
-        }
-
-        return $"""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head><meta charset="utf-8"><title>Harbor</title></head>
-            <body>
-            <p>{WebUtility.HtmlEncode(clientName)}</p>
-            <p>This client can act as you.</p>
-            <form method="post" action="/connect/authorize">
-            {fields}
-            <button type="submit" name="decision" value="accept">Accept</button>
-            <button type="submit" name="decision" value="deny">Deny</button>
-            </form>
-            </body>
-            </html>
-            """;
-    }
 
     private static bool AllowedList(JsonElement root, string name, string[] allowed, out string? error)
     {
